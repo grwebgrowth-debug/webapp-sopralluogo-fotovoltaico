@@ -3,6 +3,8 @@
 import { ClienteStep } from "@/features/cliente/ClienteStep";
 import { FaldeStep } from "@/features/falde/FaldeStep";
 import { OstacoliStep } from "@/features/ostacoli/OstacoliStep";
+import { PannelloStep } from "@/features/pannelli/PannelloStep";
+import { RevisioneStep } from "@/features/revisione/RevisioneStep";
 import { TettoStep } from "@/features/tetto/TettoStep";
 import { WizardProvider, useWizard } from "./WizardProvider";
 import { validateWizardStep } from "./wizardValidation";
@@ -88,7 +90,8 @@ function WizardShellContent() {
             {WIZARD_STEPS.map((step) => {
               const active = step.id === state.currentStepId;
               const pastStep = step.numero < currentStepNumber;
-              const selectable = active || pastStep;
+              const completedStep = state.completedStepIds.includes(step.id);
+              const selectable = active || pastStep || completedStep;
 
               return (
                 <button
@@ -108,7 +111,7 @@ function WizardShellContent() {
                   <span className="mt-1 block text-xs text-[var(--muted)]">
                     {active
                       ? "Step corrente"
-                      : pastStep
+                      : pastStep || completedStep
                         ? "Modifica dati"
                         : "Disponibile più avanti"}
                   </span>
@@ -168,19 +171,9 @@ function renderCurrentStep(stepId: string) {
     case "ostacoli":
       return <OstacoliStep />;
     case "pannello":
-      return (
-        <StepPlaceholder
-          title="Pannello"
-          description="La selezione pannello userà il catalogo recuperato tramite n8n."
-        />
-      );
+      return <PannelloStep />;
     case "revisione":
-      return (
-        <StepPlaceholder
-          title="Revisione tecnica"
-          description="Il riepilogo finale sarà costruito prima dell’invio a n8n."
-        />
-      );
+      return <RevisioneStep />;
     case "invio":
       return (
         <StepPlaceholder

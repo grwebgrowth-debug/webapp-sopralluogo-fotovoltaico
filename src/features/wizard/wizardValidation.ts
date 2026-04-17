@@ -6,6 +6,7 @@ import type {
 } from "@/types/survey";
 import { validaOstacoloDentroFalda } from "@/lib/geometry/validation";
 import type { WizardState } from "./wizardState";
+import { costruisciPayloadN8nV1 } from "./wizardPayload";
 
 export type WizardStepValidation = {
   valid: boolean;
@@ -87,6 +88,52 @@ export function validateWizardStep(
           errors.push(`${prefix}: ${geometryValidation.errore}`);
         }
       });
+    });
+  }
+
+  if (stepId === "pannello") {
+    if (!state.panel_selection.brand.trim()) {
+      errors.push("Marca pannello obbligatoria.");
+    }
+
+    if (!state.panel_selection.model.trim()) {
+      errors.push("Modello pannello obbligatorio.");
+    }
+  }
+
+  if (stepId === "revisione" || stepId === "invio") {
+    errors.push(...validateFinalSurvey(state).errors);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+export function validateFinalSurvey(state: WizardState): WizardStepValidation {
+  const errors: string[] = [];
+  const checkedSteps: WizardStepId[] = [
+    "cliente",
+    "tetto",
+    "falde",
+    "ostacoli",
+    "pannello",
+  ];
+
+  checkedSteps.forEach((stepId) => {
+    validateWizardStep(state, stepId).errors.forEach((error) => {
+      errors.push(error);
+    });
+  });
+
+  const payloadResult = costruisciPayloadN8nV1(state);
+
+  if (!payloadResult.ok) {
+    payloadResult.errors.forEach((error) => {
+      if (!errors.includes(error)) {
+        errors.push(error);
+      }
     });
   }
 
