@@ -1,9 +1,24 @@
 "use client";
 
 import { StepCard } from "@/components/ui/StepCard";
+import { WizardProvider, useWizard } from "./WizardProvider";
 import { WIZARD_STEPS } from "./wizardSteps";
 
 export function WizardShell() {
+  return (
+    <WizardProvider>
+      <WizardShellContent />
+    </WizardProvider>
+  );
+}
+
+function WizardShellContent() {
+  const { actions, payloadResult, state, summary } = useWizard();
+  const currentStep = WIZARD_STEPS.find((step) => step.id === state.currentStepId);
+  const currentStepNumber = currentStep?.numero ?? 1;
+  const canGoBack = currentStepNumber > 1;
+  const canGoForward = currentStepNumber < WIZARD_STEPS.length;
+
   return (
     <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
@@ -16,6 +31,34 @@ export function WizardShell() {
           wizard, della geometria e dell’integrazione n8n resta separata e verrà
           completata nei passaggi successivi.
         </p>
+
+        <div className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+          <p className="text-sm font-semibold">
+            Step corrente: {currentStep?.titolo ?? "Dati cliente e sopralluogo"}
+          </p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Bozza salvata nel browser. Falde inserite: {summary.surfaces_count}.
+            Ostacoli inseriti: {summary.obstacles_count}.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!canGoBack}
+              type="button"
+              onClick={actions.vaiIndietro}
+            >
+              Indietro
+            </button>
+            <button
+              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!canGoForward}
+              type="button"
+              onClick={actions.vaiAvanti}
+            >
+              Continua
+            </button>
+          </div>
+        </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {WIZARD_STEPS.map((step) => (
@@ -44,8 +87,9 @@ export function WizardShell() {
         </ul>
 
         <div className="mt-6 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--muted)]">
-          Prossimo passo: implementare lo stato del wizard mantenendo i dati già
-          inseriti quando si torna indietro.
+          Stato wizard inizializzato, persistito nel browser e pronto per i form
+          dei prossimi step. Payload finale:{" "}
+          {payloadResult.ok ? "costruibile" : "in attesa dei dati obbligatori"}.
         </div>
       </aside>
     </section>

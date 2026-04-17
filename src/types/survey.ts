@@ -10,11 +10,15 @@ export type CustomerData = {
   province: string;
 };
 
+export type Cliente = CustomerData;
+
 export type InspectionData = {
   date: string;
   technician: string;
   notes: string;
 };
+
+export type DatiSopralluogo = InspectionData;
 
 export type RectangularSurfaceDimensions = {
   width_cm: number;
@@ -50,10 +54,14 @@ export type ObstaclePositionStandard = {
   distance_from_left_cm: number;
 };
 
+export type PosizioneOstacoloStandard = ObstaclePositionStandard;
+
 export type ObstaclePositionTriangle = {
   distance_from_base_right_corner_cm: number;
   height_from_base_cm: number;
 };
+
+export type PosizioneOstacoloTriangolare = ObstaclePositionTriangle;
 
 export type ObstaclePosition =
   | ObstaclePositionStandard
@@ -88,6 +96,8 @@ export type ObstacleData = BaseObstacleData &
       }
   );
 
+export type Ostacolo = ObstacleData;
+
 type BaseSurfaceData = {
   surface_id: string;
   name: string;
@@ -117,10 +127,14 @@ export type SurfaceData =
       dimensions: GuidedQuadSurfaceDimensions;
     });
 
+export type Falda = SurfaceData;
+
 export type PanelSelection = {
   brand: string;
   model: string;
 };
+
+export type SelezionePannello = PanelSelection;
 
 export type SurveyMeta = {
   source: "webapp_sopralluogo_fotovoltaico_v1";
@@ -131,6 +145,8 @@ export type RoofData = {
   roof_type: RoofType;
   surfaces: SurfaceData[];
 };
+
+export type Tetto = RoofData;
 
 export type SopralluogoData = {
   id: string;
@@ -152,3 +168,6 @@ export type N8nSurveyPayload = {
 };
 
 export type SurveyData = N8nSurveyPayload;
+
+export type PayloadN8nV1 = N8nSurveyPayload;
+export type Sopralluogo = SopralluogoData;
