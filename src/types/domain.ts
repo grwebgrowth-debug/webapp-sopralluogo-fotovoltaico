@@ -1,11 +1,20 @@
+export type WizardStepId =
+  | "cliente"
+  | "tetto"
+  | "falde"
+  | "ostacoli"
+  | "pannello"
+  | "revisione"
+  | "invio";
+
 export type RoofType =
   | "falda_unica"
   | "due_falde"
   | "due_falde_asimmetriche"
-  | "quattro_falde"
-  | "tetto_l"
+  | "quattro_falde_padiglione"
+  | "tetto_a_l"
   | "shed"
-  | "multi_custom";
+  | "piu_falde_personalizzato";
 
 export type SurfaceShape =
   | "rectangular"
@@ -21,4 +30,6 @@ export type ObstacleType =
   | "sfiato"
   | "antenna_palo"
   | "area_non_utilizzabile"
-  | "altro";
+  | "altro_ostacolo";
+
+export type PanelAllowedOrientation = "verticale" | "orizzontale" | "entrambi";

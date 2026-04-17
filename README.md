@@ -1,13 +1,30 @@
 # Web App Sopralluogo Fotovoltaico — Base progetto Next.js
 
-Questo pacchetto contiene una base progetto reale, ordinata e pronta da usare con Codex.
+Questo pacchetto contiene la base progetto V1 per la web app di sopralluogo fotovoltaico.
 
 ## Cosa contiene
 - struttura Next.js + TypeScript + Tailwind
-- cartelle già allineate al progetto
+- cartelle già allineate agli step funzionali
 - tipi base
 - placeholder per step, geometria, validazione e API
 - documentazione di progetto nella cartella `docs-progetto/`
+
+## Struttura principale
+- `src/app`: layout globale e homepage
+- `src/components/layout`: shell e intestazione applicativa
+- `src/components/ui`: componenti UI condivisi
+- `src/features/wizard`: shell, step e stato iniziale del wizard
+- `src/features/cliente`: step dati cliente e sopralluogo
+- `src/features/tetto`: step tipo di tetto
+- `src/features/falde`: step falde
+- `src/features/ostacoli`: step ostacoli
+- `src/features/pannelli`: step pannello
+- `src/features/revisione`: step revisione tecnica
+- `src/lib/geometry`: moduli geometrici separati dalla UI
+- `src/lib/validation`: validazioni condivise
+- `src/lib/api`: placeholder per n8n
+- `src/lib/formatters`: formattatori per misure e valori
+- `src/types`: tipi condivisi e payload V1
 
 ## Cosa NON contiene ancora
 - logica completa del wizard

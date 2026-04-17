@@ -6,7 +6,7 @@ type StepCardProps = {
 
 export function StepCard({ numero, titolo, descrizione }: StepCardProps) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
       <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] text-sm font-semibold">
         {numero}
       </div>
