@@ -16,6 +16,15 @@ import type {
   SurfaceData,
 } from "@/types/survey";
 import { useWizard } from "@/features/wizard/WizardProvider";
+import { creaOstacoloGeometrico } from "@/lib/geometry/obstacles";
+import {
+  creaPoligonoFalda,
+  getPoligonoBounds,
+  type Box2D,
+  type PoligonoFalda,
+  type Punto2D,
+} from "@/lib/geometry/roof";
+import { validaOstacoloDentroFalda } from "@/lib/geometry/validation";
 
 type ObstacleDraft = {
   obstacle_id: string;
@@ -72,7 +81,21 @@ export function OstacoliStep() {
   );
   const formValidation = selectedSurface
     ? validateObstacleDraft(draft, selectedSurface)
-    : { errors: [] };
+    : { errors: [], baseFieldsValid: false };
+  const draftObstacle =
+    selectedSurface && formValidation.baseFieldsValid
+      ? createObstacleFromDraft(draft, selectedSurface)
+      : null;
+  const geometryValidation =
+    selectedSurface && draftObstacle
+      ? validaOstacoloDentroFalda(selectedSurface, draftObstacle)
+      : null;
+  const validationErrors = [
+    ...formValidation.errors,
+    ...(geometryValidation && !geometryValidation.valido
+      ? [geometryValidation.errore]
+      : []),
+  ];
 
   useEffect(() => {
     if (!selectedSurface && surfaces[0]) {
@@ -99,7 +122,7 @@ export function OstacoliStep() {
   }
 
   function saveObstacle() {
-    if (!selectedSurface || formValidation.errors.length > 0) {
+    if (!selectedSurface || validationErrors.length > 0) {
       return;
     }
 
@@ -336,13 +359,13 @@ export function OstacoliStep() {
               )}
             </div>
 
-            {formValidation.errors.length > 0 && (
+            {validationErrors.length > 0 && (
               <div className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
                 <p className="text-sm font-semibold">
                   Controlla i dati dell’ostacolo:
                 </p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
-                  {formValidation.errors.map((error) => (
+                  {validationErrors.map((error) => (
                     <li key={error}>{error}</li>
                   ))}
                 </ul>
@@ -352,7 +375,7 @@ export function OstacoliStep() {
             <div className="mt-5 flex flex-wrap gap-3">
               <button
                 className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={formValidation.errors.length > 0}
+                disabled={validationErrors.length > 0}
                 type="button"
                 onClick={saveObstacle}
               >
@@ -371,8 +394,11 @@ export function OstacoliStep() {
           <aside className="space-y-4">
             <ObstaclePreview
               draft={draft}
+              draftObstacle={draftObstacle}
+              geometryValid={geometryValidation?.valido ?? false}
+              savedObstacles={selectedSurface.obstacles}
               surface={selectedSurface}
-              title="Preview ostacolo in compilazione"
+              title="Preview geometrica"
             />
 
             <section className="rounded-lg border border-[var(--border)] bg-white p-5">
@@ -395,6 +421,19 @@ export function OstacoliStep() {
                       </p>
                       <p className="mt-1 text-[var(--muted)]">
                         {getObstaclePositionSummary(obstacle, selectedSurface)}
+                      </p>
+                      <p
+                        className={`mt-2 text-xs font-semibold ${
+                          validaOstacoloDentroFalda(selectedSurface, obstacle)
+                            .valido
+                            ? "text-emerald-700"
+                            : "text-red-700"
+                        }`}
+                      >
+                        {validaOstacoloDentroFalda(selectedSurface, obstacle)
+                          .valido
+                          ? "Dentro la falda"
+                          : "Fuori area o margine non valido"}
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
@@ -447,14 +486,52 @@ function NumberField({ label, value, onChange }: NumberFieldProps) {
 
 type ObstaclePreviewProps = {
   draft: ObstacleDraft;
+  draftObstacle: ObstacleData | null;
+  geometryValid: boolean;
+  savedObstacles: ObstacleData[];
   surface: SurfaceData;
   title: string;
 };
 
-function ObstaclePreview({ draft, surface, title }: ObstaclePreviewProps) {
+function ObstaclePreview({
+  draft,
+  draftObstacle,
+  geometryValid,
+  savedObstacles,
+  surface,
+  title,
+}: ObstaclePreviewProps) {
+  const falda = creaPoligonoFalda(surface);
+  const bounds = getPoligonoBounds(falda);
+
   return (
     <section className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-5">
-      <h3 className="text-lg font-semibold">{title}</h3>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">{title}</h3>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Rappresentazione proporzionata in centimetri.
+          </p>
+        </div>
+        <span
+          className={`rounded-lg px-2 py-1 text-xs font-semibold ${
+            geometryValid
+              ? "bg-emerald-100 text-emerald-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {geometryValid ? "Valido" : "Da correggere"}
+        </span>
+      </div>
+
+      <GeometryPreviewSvg
+        bounds={bounds}
+        draftObstacle={draftObstacle}
+        falda={falda}
+        savedObstacles={savedObstacles}
+        surface={surface}
+      />
+
       <dl className="mt-4 space-y-3 text-sm">
         <div>
           <dt className="text-[var(--muted)]">Falda</dt>
@@ -481,6 +558,144 @@ function ObstaclePreview({ draft, surface, title }: ObstaclePreviewProps) {
         </div>
       </dl>
     </section>
+  );
+}
+
+type GeometryPreviewSvgProps = {
+  bounds: Box2D;
+  draftObstacle: ObstacleData | null;
+  falda: PoligonoFalda;
+  savedObstacles: ObstacleData[];
+  surface: SurfaceData;
+};
+
+function GeometryPreviewSvg({
+  bounds,
+  draftObstacle,
+  falda,
+  savedObstacles,
+  surface,
+}: GeometryPreviewSvgProps) {
+  const viewBoxWidth = 320;
+  const viewBoxHeight = 240;
+  const padding = 20;
+  const mapPoint = createSvgPointMapper(bounds, viewBoxWidth, viewBoxHeight, padding);
+  const faldaPoints = falda.map(mapPoint).map(toSvgPoint).join(" ");
+
+  return (
+    <svg
+      aria-label="Preview geometrica falda e ostacoli"
+      className="mt-4 h-auto w-full rounded-lg border border-[var(--border)] bg-white"
+      role="img"
+      viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+    >
+      <polygon
+        fill="#eef3f1"
+        points={faldaPoints}
+        stroke="#0f766e"
+        strokeWidth="2"
+      />
+
+      {savedObstacles.map((obstacle) => (
+        <ObstacleSvg
+          key={obstacle.obstacle_id}
+          mapPoint={mapPoint}
+          obstacle={obstacle}
+          surface={surface}
+          tone="saved"
+        />
+      ))}
+
+      {draftObstacle && (
+        <ObstacleSvg
+          mapPoint={mapPoint}
+          obstacle={draftObstacle}
+          surface={surface}
+          tone={
+            validaOstacoloDentroFalda(surface, draftObstacle).valido
+              ? "valid"
+              : "invalid"
+          }
+        />
+      )}
+    </svg>
+  );
+}
+
+type ObstacleSvgProps = {
+  mapPoint: (point: Punto2D) => Punto2D;
+  obstacle: ObstacleData;
+  surface: SurfaceData;
+  tone: "saved" | "valid" | "invalid";
+};
+
+function ObstacleSvg({ mapPoint, obstacle, surface, tone }: ObstacleSvgProps) {
+  const geometry = creaOstacoloGeometrico(obstacle, surface);
+  const strokeColor =
+    tone === "invalid" ? "#b91c1c" : tone === "valid" ? "#15803d" : "#334155";
+  const fillColor =
+    tone === "invalid" ? "#fee2e2" : tone === "valid" ? "#dcfce7" : "#dbeafe";
+
+  if (geometry.shape === "rect") {
+    const points = geometry.vertices.map(mapPoint).map(toSvgPoint).join(" ");
+    const expandedPoints = geometry.expanded_vertices
+      .map(mapPoint)
+      .map(toSvgPoint)
+      .join(" ");
+
+    return (
+      <g>
+        <polygon
+          fill="none"
+          points={expandedPoints}
+          stroke={strokeColor}
+          strokeDasharray="4 3"
+          strokeWidth="1.5"
+        />
+        <polygon
+          fill={fillColor}
+          fillOpacity="0.85"
+          points={points}
+          stroke={strokeColor}
+          strokeWidth="2"
+        />
+      </g>
+    );
+  }
+
+  const center = mapPoint(geometry.center);
+  const radiusPoint = mapPoint({
+    x_cm: geometry.center.x_cm + geometry.radius_cm,
+    y_cm: geometry.center.y_cm,
+  });
+  const expandedRadiusPoint = mapPoint({
+    x_cm: geometry.center.x_cm + geometry.expanded_radius_cm,
+    y_cm: geometry.center.y_cm,
+  });
+  const radius = Math.abs(radiusPoint.x_cm - center.x_cm);
+  const expandedRadius = Math.abs(expandedRadiusPoint.x_cm - center.x_cm);
+
+  return (
+    <g>
+      <circle
+        cx={center.x_cm}
+        cy={center.y_cm}
+        fill="none"
+        r={expandedRadius}
+        stroke={strokeColor}
+        strokeDasharray="4 3"
+        strokeWidth="1.5"
+      />
+      <circle
+        cx={center.x_cm}
+        cy={center.y_cm}
+        fill={fillColor}
+        fillOpacity="0.85"
+        r={radius}
+        stroke={strokeColor}
+        strokeWidth="2"
+      />
+    </g>
   );
 }
 
@@ -574,7 +789,7 @@ function createPositionFromDraft(
 function validateObstacleDraft(
   draft: ObstacleDraft,
   surface: SurfaceData,
-): ObstacleFormErrors {
+): ObstacleFormErrors & { baseFieldsValid: boolean } {
   const errors: string[] = [];
 
   if (!draft.obstacle_id.trim()) {
@@ -619,7 +834,7 @@ function validateObstacleDraft(
     }
   }
 
-  return { errors };
+  return { errors, baseFieldsValid: errors.length === 0 };
 }
 
 function updateDraftNumber(
@@ -699,4 +914,31 @@ function getObstaclePositionSummary(
   }
 
   return "Posizione da verificare.";
+}
+
+function createSvgPointMapper(
+  bounds: Box2D,
+  viewBoxWidth: number,
+  viewBoxHeight: number,
+  padding: number,
+): (point: Punto2D) => Punto2D {
+  const widthCm = Math.max(1, bounds.max_x_cm - bounds.min_x_cm);
+  const heightCm = Math.max(1, bounds.max_y_cm - bounds.min_y_cm);
+  const scale = Math.min(
+    (viewBoxWidth - padding * 2) / widthCm,
+    (viewBoxHeight - padding * 2) / heightCm,
+  );
+  const offsetX =
+    padding + (viewBoxWidth - padding * 2 - widthCm * scale) / 2;
+  const offsetY =
+    padding + (viewBoxHeight - padding * 2 - heightCm * scale) / 2;
+
+  return (point) => ({
+    x_cm: offsetX + (point.x_cm - bounds.min_x_cm) * scale,
+    y_cm: offsetY + (bounds.max_y_cm - point.y_cm) * scale,
+  });
+}
+
+function toSvgPoint(point: Punto2D): string {
+  return `${point.x_cm},${point.y_cm}`;
 }

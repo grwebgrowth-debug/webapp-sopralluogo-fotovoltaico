@@ -4,6 +4,7 @@ import type {
   SurfaceData,
   SurfaceDimensions,
 } from "@/types/survey";
+import { validaOstacoloDentroFalda } from "@/lib/geometry/validation";
 import type { WizardState } from "./wizardState";
 
 export type WizardStepValidation = {
@@ -79,6 +80,12 @@ export function validateWizardStep(
         getObstacleErrors(surface, obstacle).forEach((error) => {
           errors.push(`${prefix}: ${error}`);
         });
+
+        const geometryValidation = validaOstacoloDentroFalda(surface, obstacle);
+
+        if (!geometryValidation.valido) {
+          errors.push(`${prefix}: ${geometryValidation.errore}`);
+        }
       });
     });
   }
