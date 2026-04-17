@@ -6,6 +6,7 @@ import { OstacoliStep } from "@/features/ostacoli/OstacoliStep";
 import { PannelloStep } from "@/features/pannelli/PannelloStep";
 import { RevisioneStep } from "@/features/revisione/RevisioneStep";
 import { TettoStep } from "@/features/tetto/TettoStep";
+import { LayoutModuliStep } from "./LayoutModuliStep";
 import { WizardProvider, useWizard } from "./WizardProvider";
 import { validateWizardStep } from "./wizardValidation";
 import { WIZARD_STEPS } from "./wizardSteps";
@@ -172,6 +173,8 @@ function renderCurrentStep(stepId: string) {
       return <OstacoliStep />;
     case "pannello":
       return <PannelloStep />;
+    case "layout_moduli":
+      return <LayoutModuliStep />;
     case "revisione":
       return <RevisioneStep />;
     case "invio":

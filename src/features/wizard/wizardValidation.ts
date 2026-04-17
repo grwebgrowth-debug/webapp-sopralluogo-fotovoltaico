@@ -101,6 +101,24 @@ export function validateWizardStep(
     }
   }
 
+  if (stepId === "layout_moduli") {
+    if (state.panel_technical_data.width_cm <= 0) {
+      errors.push("Larghezza pannello necessaria per il layout.");
+    }
+
+    if (state.panel_technical_data.height_cm <= 0) {
+      errors.push("Altezza pannello necessaria per il layout.");
+    }
+
+    if (state.panel_technical_data.power_w <= 0) {
+      errors.push("Potenza pannello necessaria per il layout.");
+    }
+
+    if (state.preliminary_layout === null) {
+      errors.push("Calcola il layout moduli preliminare.");
+    }
+  }
+
   if (stepId === "revisione" || stepId === "invio") {
     errors.push(...validateFinalSurvey(state).errors);
   }
@@ -119,6 +137,7 @@ export function validateFinalSurvey(state: WizardState): WizardStepValidation {
     "falde",
     "ostacoli",
     "pannello",
+    "layout_moduli",
   ];
 
   checkedSteps.forEach((stepId) => {

@@ -49,6 +49,19 @@ export function PannelloStep() {
     (item) => item.brand === state.panel_selection.brand,
   );
 
+  useEffect(() => {
+    if (!selectedPanel) {
+      return;
+    }
+
+    actions.impostaDatiTecniciPannello({
+      width_cm: selectedPanel.width_cm,
+      height_cm: selectedPanel.height_cm,
+      power_w: selectedPanel.power_w,
+      source: "catalogo",
+    });
+  }, [actions, selectedPanel]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -77,6 +90,11 @@ export function PannelloStep() {
                   actions.impostaPannello({
                     brand: event.target.value,
                     model: "",
+                  }, {
+                    width_cm: 0,
+                    height_cm: 0,
+                    power_w: 0,
+                    source: null,
                   })
                 }
               >
@@ -187,7 +205,76 @@ export function PannelloStep() {
           </div>
         )}
       </section>
+
+      {!selectedPanel && (
+        <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+          <h3 className="text-lg font-semibold">Dati tecnici per layout</h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            Inserisci questi dati solo se il catalogo n8n non è disponibile.
+            Senza larghezza, altezza e potenza il layout moduli non viene
+            calcolato.
+          </p>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <NumberField
+              label="Larghezza pannello"
+              value={state.panel_technical_data.width_cm}
+              onChange={(value) =>
+                actions.impostaDatiTecniciPannello({
+                  ...state.panel_technical_data,
+                  width_cm: value,
+                  source: "manuale",
+                })
+              }
+            />
+            <NumberField
+              label="Altezza pannello"
+              value={state.panel_technical_data.height_cm}
+              onChange={(value) =>
+                actions.impostaDatiTecniciPannello({
+                  ...state.panel_technical_data,
+                  height_cm: value,
+                  source: "manuale",
+                })
+              }
+            />
+            <NumberField
+              label="Potenza pannello"
+              suffix="W"
+              value={state.panel_technical_data.power_w}
+              onChange={(value) =>
+                actions.impostaDatiTecniciPannello({
+                  ...state.panel_technical_data,
+                  power_w: value,
+                  source: "manuale",
+                })
+              }
+            />
+          </div>
+        </section>
+      )}
     </div>
+  );
+}
+
+type NumberFieldProps = {
+  label: string;
+  onChange: (value: number) => void;
+  suffix?: string;
+  value: number;
+};
+
+function NumberField({ label, onChange, suffix = "cm", value }: NumberFieldProps) {
+  return (
+    <label className={labelClassName}>
+      {label} ({suffix})
+      <input
+        className={inputClassName}
+        min={0}
+        type="number"
+        value={value}
+        onChange={(event) => onChange(readPositiveNumber(event.target.valueAsNumber))}
+      />
+    </label>
   );
 }
 
@@ -203,4 +290,12 @@ function SummaryItem({ label, value }: SummaryItemProps) {
       <dd className="font-medium">{value}</dd>
     </div>
   );
+}
+
+function readPositiveNumber(value: number): number {
+  if (!Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+
+  return value;
 }

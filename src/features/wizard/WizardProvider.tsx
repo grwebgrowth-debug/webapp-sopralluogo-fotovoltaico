@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import type { RoofType, WizardStepId } from "@/types/domain";
+import type { PreliminaryModuleLayout } from "@/types/layout";
+import type { PanelTechnicalData } from "@/types/panels";
 import type {
   CustomerData,
   InspectionData,
@@ -47,7 +49,12 @@ type WizardActions = {
     obstacle: Partial<ObstacleData>,
   ) => void;
   eliminaOstacolo: (surfaceId: string, obstacleId: string) => void;
-  impostaPannello: (panel: PanelSelection) => void;
+  impostaPannello: (
+    panel: PanelSelection,
+    technicalData?: PanelTechnicalData,
+  ) => void;
+  impostaDatiTecniciPannello: (technicalData: PanelTechnicalData) => void;
+  impostaLayoutPreliminare: (layout: PreliminaryModuleLayout | null) => void;
   cambiaStep: (stepId: WizardStepId) => void;
   vaiAvanti: () => void;
   vaiIndietro: () => void;
@@ -114,7 +121,12 @@ export function WizardProvider({ children }: WizardProviderProps) {
         }),
       eliminaOstacolo: (surfaceId, obstacleId) =>
         dispatch({ type: "obstacle/delete", surfaceId, obstacleId }),
-      impostaPannello: (panel) => dispatch({ type: "panel/set", panel }),
+      impostaPannello: (panel, technicalData) =>
+        dispatch({ type: "panel/set", panel, technicalData }),
+      impostaDatiTecniciPannello: (technicalData) =>
+        dispatch({ type: "panel/set_technical_data", technicalData }),
+      impostaLayoutPreliminare: (layout) =>
+        dispatch({ type: "layout/set", layout }),
       cambiaStep: (stepId) => dispatch({ type: "wizard/change_step", stepId }),
       vaiAvanti: () => {
         const nextStepId = getNextWizardStepId(state.currentStepId);

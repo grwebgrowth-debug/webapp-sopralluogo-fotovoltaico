@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { WizardStepId } from "@/types/domain";
 import { inviaSopralluogoAN8n } from "@/lib/api/n8n";
+import { formattaWatt } from "@/lib/formatters/units";
 import { useWizard } from "@/features/wizard/WizardProvider";
 import { costruisciPayloadN8nV1 } from "@/features/wizard/wizardPayload";
 import { validateFinalSurvey } from "@/features/wizard/wizardValidation";
@@ -198,6 +199,58 @@ export function RevisioneStep() {
             ],
           ]}
         />
+      </ReviewSection>
+
+      <ReviewSection
+        title="Layout moduli preliminare"
+        onEdit={() => actions.cambiaStep("layout_moduli")}
+      >
+        {state.preliminary_layout ? (
+          <div className="space-y-4">
+            <DescriptionList
+              items={[
+                [
+                  "Moduli totali",
+                  String(state.preliminary_layout.total_modules),
+                ],
+                [
+                  "Potenza totale",
+                  formattaWatt(state.preliminary_layout.total_power_w),
+                ],
+                [
+                  "Falde calcolate",
+                  String(state.preliminary_layout.surfaces.length),
+                ],
+              ]}
+            />
+            <div className="space-y-3">
+              {state.preliminary_layout.surfaces.map((surfaceLayout) => (
+                <div
+                  key={surfaceLayout.surface_id}
+                  className="rounded-lg border border-[var(--border)] p-4 text-sm"
+                >
+                  <p className="font-semibold">{surfaceLayout.surface_name}</p>
+                  <p className="mt-1 text-[var(--muted)]">
+                    Orientamento: {surfaceLayout.selected_orientation}. Moduli:{" "}
+                    {surfaceLayout.module_count}. Potenza:{" "}
+                    {formattaWatt(surfaceLayout.total_power_w)}.
+                  </p>
+                  {surfaceLayout.messages.length > 0 && (
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-[var(--muted)]">
+                      {surfaceLayout.messages.map((message) => (
+                        <li key={message}>{message}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">
+            Layout moduli non ancora calcolato.
+          </p>
+        )}
       </ReviewSection>
 
       <section className="rounded-lg border border-[var(--border)] bg-white p-5">

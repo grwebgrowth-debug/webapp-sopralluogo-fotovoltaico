@@ -1,5 +1,7 @@
 import type { RoofType, WizardStepId } from "@/types/domain";
 import { WIZARD_STEP_IDS } from "@/types/domain";
+import type { PreliminaryModuleLayout } from "@/types/layout";
+import type { PanelTechnicalData } from "@/types/panels";
 import type {
   CustomerData,
   InspectionData,
@@ -23,6 +25,8 @@ export type WizardState = {
   inspection: InspectionData;
   roof: WizardRoofState;
   panel_selection: PanelSelection;
+  panel_technical_data: PanelTechnicalData;
+  preliminary_layout: PreliminaryModuleLayout | null;
   meta: SurveyMeta;
   updated_at: string | null;
 };
@@ -33,6 +37,8 @@ export type WizardSummary = {
   surfaces_count: number;
   obstacles_count: number;
   panel_selected: boolean;
+  layout_modules_count: number;
+  layout_total_power_w: number;
 };
 
 export type WizardAction =
@@ -91,6 +97,15 @@ export type WizardAction =
   | {
       type: "panel/set";
       panel: PanelSelection;
+      technicalData?: PanelTechnicalData;
+    }
+  | {
+      type: "panel/set_technical_data";
+      technicalData: PanelTechnicalData;
+    }
+  | {
+      type: "layout/set";
+      layout: PreliminaryModuleLayout | null;
     };
 
 export function createEmptyCustomerData(): CustomerData {
@@ -120,6 +135,15 @@ export function createEmptyPanelSelection(): PanelSelection {
   };
 }
 
+export function createEmptyPanelTechnicalData(): PanelTechnicalData {
+  return {
+    width_cm: 0,
+    height_cm: 0,
+    power_w: 0,
+    source: null,
+  };
+}
+
 export function createSurveyMeta(): SurveyMeta {
   return {
     source: "webapp_sopralluogo_fotovoltaico_v1",
@@ -144,6 +168,8 @@ export function createEmptyWizardState(): WizardState {
       custom_surface_count: null,
     },
     panel_selection: createEmptyPanelSelection(),
+    panel_technical_data: createEmptyPanelTechnicalData(),
+    preliminary_layout: null,
     meta: createSurveyMeta(),
     updated_at: null,
   };
@@ -191,6 +217,7 @@ export function impostaTipoTetto(
           ? state.roof.custom_surface_count ?? 3
           : null,
     },
+    preliminary_layout: null,
   });
 }
 
@@ -204,6 +231,7 @@ export function impostaNumeroFaldePersonalizzato(
       ...state.roof,
       custom_surface_count: count,
     },
+    preliminary_layout: null,
   });
 }
 
@@ -217,6 +245,7 @@ export function sostituisciFalde(
       ...state.roof,
       surfaces,
     },
+    preliminary_layout: null,
   });
 }
 
@@ -235,6 +264,7 @@ export function aggiornaFalda(
           : currentSurface,
       ),
     },
+    preliminary_layout: null,
   });
 }
 
@@ -256,6 +286,7 @@ export function aggiungiOstacolo(
           : surface,
       ) as SurfaceData[],
     },
+    preliminary_layout: null,
   });
 }
 
@@ -282,6 +313,7 @@ export function aggiornaOstacolo(
           : surface,
       ) as SurfaceData[],
     },
+    preliminary_layout: null,
   });
 }
 
@@ -305,16 +337,41 @@ export function eliminaOstacolo(
           : surface,
       ) as SurfaceData[],
     },
+    preliminary_layout: null,
   });
 }
 
 export function impostaPannello(
   state: WizardState,
   panel: PanelSelection,
+  technicalData?: PanelTechnicalData,
 ): WizardState {
   return touchState({
     ...state,
     panel_selection: panel,
+    panel_technical_data: technicalData ?? state.panel_technical_data,
+    preliminary_layout: null,
+  });
+}
+
+export function impostaDatiTecniciPannello(
+  state: WizardState,
+  technicalData: PanelTechnicalData,
+): WizardState {
+  return touchState({
+    ...state,
+    panel_technical_data: technicalData,
+    preliminary_layout: null,
+  });
+}
+
+export function impostaLayoutPreliminare(
+  state: WizardState,
+  layout: PreliminaryModuleLayout | null,
+): WizardState {
+  return touchState({
+    ...state,
+    preliminary_layout: layout,
   });
 }
 
@@ -373,7 +430,11 @@ export function wizardReducer(
     case "obstacle/delete":
       return eliminaOstacolo(state, action.surfaceId, action.obstacleId);
     case "panel/set":
-      return impostaPannello(state, action.panel);
+      return impostaPannello(state, action.panel, action.technicalData);
+    case "panel/set_technical_data":
+      return impostaDatiTecniciPannello(state, action.technicalData);
+    case "layout/set":
+      return impostaLayoutPreliminare(state, action.layout);
     default:
       return state;
   }
@@ -393,6 +454,8 @@ export function getWizardSummary(state: WizardState): WizardSummary {
     panel_selected: Boolean(
       state.panel_selection.brand && state.panel_selection.model,
     ),
+    layout_modules_count: state.preliminary_layout?.total_modules ?? 0,
+    layout_total_power_w: state.preliminary_layout?.total_power_w ?? 0,
   };
 }
 

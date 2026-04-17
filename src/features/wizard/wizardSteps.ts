@@ -39,14 +39,20 @@ export const WIZARD_STEPS = [
     descrizione: "Selezione marca e modello dal catalogo recuperato tramite n8n.",
   },
   {
-    id: "revisione",
+    id: "layout_moduli",
     numero: 6,
+    titolo: "Layout moduli preliminare",
+    descrizione: "Calcolo tecnico preliminare dei moduli inseribili sulle falde.",
+  },
+  {
+    id: "revisione",
+    numero: 7,
     titolo: "Revisione tecnica",
     descrizione: "Controllo completo dei dati prima della conferma finale.",
   },
   {
     id: "invio",
-    numero: 7,
+    numero: 8,
     titolo: "Invio a n8n",
     descrizione: "Invio del payload finale per elaborazione e salvataggio.",
   },

@@ -6,6 +6,12 @@ import {
   WIZARD_STEP_IDS,
 } from "@/types/domain";
 import type {
+  PreliminaryModuleLayout,
+  PositionedModule,
+  SurfaceModuleLayout,
+} from "@/types/layout";
+import type { PanelTechnicalData } from "@/types/panels";
+import type {
   CircleObstacleDimensions,
   CustomerData,
   GuidedQuadSurfaceDimensions,
@@ -104,6 +110,10 @@ export function normalizeWizardState(value: unknown): WizardState | null {
       ? value.roof.custom_surface_count
       : null;
   const panelSelection = normalizePanelSelection(value.panel_selection);
+  const panelTechnicalData = normalizePanelTechnicalData(
+    value.panel_technical_data,
+  );
+  const preliminaryLayout = normalizePreliminaryLayout(value.preliminary_layout);
   const completedStepIds = Array.isArray(value.completedStepIds)
     ? value.completedStepIds.filter(isWizardStepId)
     : [];
@@ -121,6 +131,8 @@ export function normalizeWizardState(value: unknown): WizardState | null {
       custom_surface_count: customSurfaceCount,
     },
     panel_selection: panelSelection,
+    panel_technical_data: panelTechnicalData,
+    preliminary_layout: preliminaryLayout,
     meta: createSurveyMeta(),
     updated_at: readNullableString(value.updated_at),
   };
@@ -154,6 +166,39 @@ function normalizePanelSelection(value: unknown): PanelSelection {
   return {
     brand: readStringField(value, "brand"),
     model: readStringField(value, "model"),
+  };
+}
+
+function normalizePanelTechnicalData(value: unknown): PanelTechnicalData {
+  return {
+    width_cm: readNumberField(value, "width_cm"),
+    height_cm: readNumberField(value, "height_cm"),
+    power_w: readNumberField(value, "power_w"),
+    source:
+      isRecord(value) && (value.source === "catalogo" || value.source === "manuale")
+        ? value.source
+        : null,
+  };
+}
+
+function normalizePreliminaryLayout(
+  value: unknown,
+): PreliminaryModuleLayout | null {
+  if (!isRecord(value) || !Array.isArray(value.surfaces)) {
+    return null;
+  }
+
+  const surfaces = value.surfaces.filter(isSurfaceModuleLayout);
+
+  return {
+    calculated_at: readString(value.calculated_at, ""),
+    panel: normalizePanelTechnicalData(value.panel),
+    surfaces,
+    total_modules: readNumberField(value, "total_modules"),
+    total_power_w: readNumberField(value, "total_power_w"),
+    messages: Array.isArray(value.messages)
+      ? value.messages.filter(isString)
+      : [],
   };
 }
 
@@ -209,6 +254,38 @@ function isObstacleData(value: unknown): value is ObstacleData {
   }
 
   return isCircleObstacleDimensions(value.dimensions);
+}
+
+function isSurfaceModuleLayout(value: unknown): value is SurfaceModuleLayout {
+  if (
+    !isRecord(value) ||
+    !isString(value.surface_id) ||
+    !isString(value.surface_name) ||
+    (value.selected_orientation !== "verticale" &&
+      value.selected_orientation !== "orizzontale") ||
+    !isNumber(value.module_count) ||
+    !Array.isArray(value.modules) ||
+    !isNumber(value.useful_area_cm2) ||
+    !isNumber(value.occupied_area_cm2) ||
+    !isNumber(value.total_power_w)
+  ) {
+    return false;
+  }
+
+  return value.modules.every(isPositionedModule);
+}
+
+function isPositionedModule(value: unknown): value is PositionedModule {
+  return (
+    isRecord(value) &&
+    isString(value.module_id) &&
+    isString(value.surface_id) &&
+    isNumber(value.x_cm) &&
+    isNumber(value.y_cm) &&
+    isNumber(value.width_cm) &&
+    isNumber(value.height_cm) &&
+    (value.orientation === "verticale" || value.orientation === "orizzontale")
+  );
 }
 
 function isRectangularSurfaceDimensions(
@@ -302,6 +379,10 @@ function isNumber(value: unknown): value is number {
 
 function readStringField(value: unknown, field: string): string {
   return isRecord(value) && isString(value[field]) ? value[field] : "";
+}
+
+function readNumberField(value: unknown, field: string): number {
+  return isRecord(value) && isNumber(value[field]) ? value[field] : 0;
 }
 
 function readString(value: unknown, fallback: string): string {
