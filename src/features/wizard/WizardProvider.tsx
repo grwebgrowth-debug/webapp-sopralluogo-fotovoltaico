@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useState,
   type ReactNode,
 } from "react";
 import type { RoofType, WizardStepId } from "@/types/domain";
@@ -36,6 +37,7 @@ type WizardActions = {
   aggiornaDatiCliente: (customer: Partial<CustomerData>) => void;
   aggiornaDatiSopralluogo: (inspection: Partial<InspectionData>) => void;
   impostaTipoTetto: (roofType: RoofType) => void;
+  impostaNumeroFaldePersonalizzato: (count: number) => void;
   sostituisciFalde: (surfaces: SurfaceData[]) => void;
   aggiornaFalda: (surfaceId: string, surface: Partial<SurfaceData>) => void;
   aggiungiOstacolo: (surfaceId: string, obstacle: ObstacleData) => void;
@@ -59,22 +61,33 @@ type WizardContextValue = {
   actions: WizardActions;
 };
 
-const WizardContext = createContext<WizardContextValue | null>(null);
+export const WizardContext = createContext<WizardContextValue | null>(null);
 
 type WizardProviderProps = {
   children: ReactNode;
 };
 
 export function WizardProvider({ children }: WizardProviderProps) {
-  const [state, dispatch] = useReducer(
-    wizardReducer,
-    undefined,
-    createInitialClientState,
+  const [hydrated, setHydrated] = useState(false);
+  const [state, dispatch] = useReducer(wizardReducer, undefined, () =>
+    createEmptyWizardState(),
   );
 
   useEffect(() => {
-    savePersistedWizardState(state);
-  }, [state]);
+    const persistedState = loadPersistedWizardState();
+
+    if (persistedState) {
+      dispatch({ type: "wizard/hydrate", state: persistedState });
+    }
+
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (hydrated) {
+      savePersistedWizardState(state);
+    }
+  }, [hydrated, state]);
 
   const actions = useMemo<WizardActions>(
     () => ({
@@ -84,6 +97,8 @@ export function WizardProvider({ children }: WizardProviderProps) {
         dispatch({ type: "inspection/update", inspection }),
       impostaTipoTetto: (roofType) =>
         dispatch({ type: "roof/set_type", roofType }),
+      impostaNumeroFaldePersonalizzato: (count) =>
+        dispatch({ type: "roof/set_custom_surface_count", count }),
       sostituisciFalde: (surfaces) =>
         dispatch({ type: "surfaces/replace", surfaces }),
       aggiornaFalda: (surfaceId, surface) =>
@@ -144,8 +159,4 @@ export function useWizard() {
   }
 
   return context;
-}
-
-function createInitialClientState(): WizardState {
-  return loadPersistedWizardState() ?? createEmptyWizardState();
 }

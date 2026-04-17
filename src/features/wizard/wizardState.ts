@@ -12,6 +12,7 @@ import type {
 export type WizardRoofState = {
   roof_type: RoofType | null;
   surfaces: SurfaceData[];
+  custom_surface_count: number | null;
 };
 
 export type WizardState = {
@@ -36,6 +37,10 @@ export type WizardSummary = {
 
 export type WizardAction =
   | {
+      type: "wizard/hydrate";
+      state: WizardState;
+    }
+  | {
       type: "wizard/change_step";
       stepId: WizardStepId;
     }
@@ -53,6 +58,10 @@ export type WizardAction =
   | {
       type: "roof/set_type";
       roofType: RoofType;
+    }
+  | {
+      type: "roof/set_custom_surface_count";
+      count: number;
     }
   | {
       type: "surfaces/replace";
@@ -132,6 +141,7 @@ export function createEmptyWizardState(): WizardState {
     roof: {
       roof_type: null,
       surfaces: [],
+      custom_surface_count: null,
     },
     panel_selection: createEmptyPanelSelection(),
     meta: createSurveyMeta(),
@@ -176,6 +186,23 @@ export function impostaTipoTetto(
     roof: {
       ...state.roof,
       roof_type: roofType,
+      custom_surface_count:
+        roofType === "piu_falde_personalizzato"
+          ? state.roof.custom_surface_count ?? 3
+          : null,
+    },
+  });
+}
+
+export function impostaNumeroFaldePersonalizzato(
+  state: WizardState,
+  count: number,
+): WizardState {
+  return touchState({
+    ...state,
+    roof: {
+      ...state.roof,
+      custom_surface_count: count,
     },
   });
 }
@@ -316,6 +343,8 @@ export function wizardReducer(
   action: WizardAction,
 ): WizardState {
   switch (action.type) {
+    case "wizard/hydrate":
+      return action.state;
     case "wizard/change_step":
       return cambiaStep(state, action.stepId);
     case "wizard/reset":
@@ -326,6 +355,8 @@ export function wizardReducer(
       return aggiornaDatiSopralluogo(state, action.inspection);
     case "roof/set_type":
       return impostaTipoTetto(state, action.roofType);
+    case "roof/set_custom_surface_count":
+      return impostaNumeroFaldePersonalizzato(state, action.count);
     case "surfaces/replace":
       return sostituisciFalde(state, action.surfaces);
     case "surface/update":

@@ -99,6 +99,10 @@ export function normalizeWizardState(value: unknown): WizardState | null {
     isRecord(value.roof) && Array.isArray(value.roof.surfaces)
       ? value.roof.surfaces.filter(isSurfaceData)
       : [];
+  const customSurfaceCount =
+    isRecord(value.roof) && isNumber(value.roof.custom_surface_count)
+      ? value.roof.custom_surface_count
+      : null;
   const panelSelection = normalizePanelSelection(value.panel_selection);
   const completedStepIds = Array.isArray(value.completedStepIds)
     ? value.completedStepIds.filter(isWizardStepId)
@@ -114,6 +118,7 @@ export function normalizeWizardState(value: unknown): WizardState | null {
     roof: {
       roof_type: roofType,
       surfaces,
+      custom_surface_count: customSurfaceCount,
     },
     panel_selection: panelSelection,
     meta: createSurveyMeta(),
