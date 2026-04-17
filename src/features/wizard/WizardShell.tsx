@@ -2,6 +2,7 @@
 
 import { ClienteStep } from "@/features/cliente/ClienteStep";
 import { FaldeStep } from "@/features/falde/FaldeStep";
+import { OstacoliStep } from "@/features/ostacoli/OstacoliStep";
 import { TettoStep } from "@/features/tetto/TettoStep";
 import { WizardProvider, useWizard } from "./WizardProvider";
 import { validateWizardStep } from "./wizardValidation";
@@ -165,12 +166,7 @@ function renderCurrentStep(stepId: string) {
     case "falde":
       return <FaldeStep />;
     case "ostacoli":
-      return (
-        <StepPlaceholder
-          title="Ostacoli"
-          description="Lo step ostacoli sarà implementato nel prossimo prompt, riusando le falde già compilate."
-        />
-      );
+      return <OstacoliStep />;
     case "pannello":
       return (
         <StepPlaceholder

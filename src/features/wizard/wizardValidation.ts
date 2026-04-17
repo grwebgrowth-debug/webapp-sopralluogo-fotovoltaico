@@ -1,5 +1,9 @@
 import type { WizardStepId } from "@/types/domain";
-import type { SurfaceData, SurfaceDimensions } from "@/types/survey";
+import type {
+  ObstacleData,
+  SurfaceData,
+  SurfaceDimensions,
+} from "@/types/survey";
 import type { WizardState } from "./wizardState";
 
 export type WizardStepValidation = {
@@ -61,6 +65,24 @@ export function validateWizardStep(
     });
   }
 
+  if (stepId === "ostacoli") {
+    if (state.roof.surfaces.length === 0) {
+      errors.push("Inserisci almeno una falda prima degli ostacoli.");
+    }
+
+    state.roof.surfaces.forEach((surface, surfaceIndex) => {
+      surface.obstacles.forEach((obstacle, obstacleIndex) => {
+        const prefix = `Falda ${surfaceIndex + 1}, ostacolo ${
+          obstacleIndex + 1
+        }`;
+
+        getObstacleErrors(surface, obstacle).forEach((error) => {
+          errors.push(`${prefix}: ${error}`);
+        });
+      });
+    });
+  }
+
   return {
     valid: errors.length === 0,
     errors,
@@ -75,4 +97,61 @@ function getDimensionValues(dimensions: SurfaceDimensions): number[] {
   return Object.values(dimensions).filter(
     (value): value is number => typeof value === "number",
   );
+}
+
+function getObstacleErrors(
+  surface: SurfaceData,
+  obstacle: ObstacleData,
+): string[] {
+  const errors: string[] = [];
+
+  if (!obstacle.obstacle_id.trim()) {
+    errors.push("nome ostacolo obbligatorio.");
+  }
+
+  if (obstacle.safety_margin_cm <= 0) {
+    errors.push("margine di sicurezza obbligatorio e maggiore di zero.");
+  }
+
+  if (obstacle.shape === "rect") {
+    if (obstacle.dimensions.width_cm <= 0) {
+      errors.push("larghezza ostacolo obbligatoria e maggiore di zero.");
+    }
+
+    if (obstacle.dimensions.height_cm <= 0) {
+      errors.push("altezza ostacolo obbligatoria e maggiore di zero.");
+    }
+  }
+
+  if (obstacle.shape === "circle" && obstacle.dimensions.diameter_cm <= 0) {
+    errors.push("diametro ostacolo obbligatorio e maggiore di zero.");
+  }
+
+  if (surface.shape === "triangle") {
+    if (!("distance_from_base_right_corner_cm" in obstacle.position)) {
+      errors.push("riferimenti posizione triangolare mancanti.");
+    } else {
+      if (obstacle.position.distance_from_base_right_corner_cm <= 0) {
+        errors.push(
+          "distanza dall’angolo destro della base obbligatoria e maggiore di zero.",
+        );
+      }
+
+      if (obstacle.position.height_from_base_cm <= 0) {
+        errors.push("altezza dalla base (H) obbligatoria e maggiore di zero.");
+      }
+    }
+  } else if (!("distance_from_base_cm" in obstacle.position)) {
+    errors.push("riferimenti posizione standard mancanti.");
+  } else {
+    if (obstacle.position.distance_from_base_cm <= 0) {
+      errors.push("distanza dalla base obbligatoria e maggiore di zero.");
+    }
+
+    if (obstacle.position.distance_from_left_cm <= 0) {
+      errors.push("distanza dal lato sinistro obbligatoria e maggiore di zero.");
+    }
+  }
+
+  return errors;
 }
