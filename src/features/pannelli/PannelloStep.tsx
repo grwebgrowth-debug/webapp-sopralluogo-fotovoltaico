@@ -72,7 +72,7 @@ export function PannelloStep() {
         </p>
       </div>
 
-      {catalogResult && !catalogResult.ok && (
+      {catalogResult && !catalogResult.ok && catalogResult.reason !== "not_configured" && (
         <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]">
           {catalogResult.error}
         </div>
@@ -199,8 +199,8 @@ export function PannelloStep() {
               <strong>{state.panel_selection.model || "Non indicato"}</strong>
             </p>
             <p className="mt-3">
-              Catalogo pannelli non ancora collegato a Google Sheet tramite
-              n8n.
+              Dati inseriti manualmente in attesa del catalogo Google Sheet
+              tramite n8n.
             </p>
           </div>
         )}
@@ -210,9 +210,8 @@ export function PannelloStep() {
         <section className="rounded-lg border border-[var(--border)] bg-white p-5">
           <h3 className="text-lg font-semibold">Dati tecnici per layout</h3>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Inserisci questi dati solo finché il catalogo Google Sheet tramite
-            n8n non è disponibile. Senza larghezza, altezza e potenza il layout
-            moduli non viene calcolato.
+            Catalogo pannelli non ancora collegato a Google Sheet tramite n8n.
+            Inserisci i dati minimi per calcolare il layout preliminare.
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <NumberField
@@ -270,9 +269,10 @@ function NumberField({ label, onChange, suffix = "cm", value }: NumberFieldProps
       <input
         className={inputClassName}
         min={0}
+        placeholder={suffix === "W" ? "Esempio: 430" : "Misura in cm"}
         type="number"
-        value={value}
-        onChange={(event) => onChange(readPositiveNumber(event.target.valueAsNumber))}
+        value={formatNumberInput(value)}
+        onChange={(event) => onChange(readPositiveNumber(event.target.value))}
       />
     </label>
   );
@@ -292,10 +292,20 @@ function SummaryItem({ label, value }: SummaryItemProps) {
   );
 }
 
-function readPositiveNumber(value: number): number {
-  if (!Number.isFinite(value) || value < 0) {
+function readPositiveNumber(value: string): number {
+  if (value.trim() === "") {
     return 0;
   }
 
-  return value;
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return 0;
+  }
+
+  return numericValue;
+}
+
+function formatNumberInput(value: number): string {
+  return value > 0 ? String(value) : "";
 }

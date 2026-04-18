@@ -36,15 +36,16 @@ function WizardShellContent() {
   }
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
-        <div className="mb-6">
-          <p className="mb-2 text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
-            Wizard sopralluogo
+    <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-2xl shadow-black/20 sm:p-6">
+        <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+            Step {currentStepNumber} di {WIZARD_STEPS.length}
           </p>
-          <h1 className="text-2xl font-semibold">
-            {currentStep?.titolo ?? "Dati cliente e sopralluogo"}
-          </h1>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            {currentStep?.descrizione ??
+              "Compila i dati del sopralluogo senza perdere la bozza."}
+          </p>
         </div>
 
         {renderCurrentStep(state.currentStepId)}
@@ -62,9 +63,9 @@ function WizardShellContent() {
           </div>
         )}
 
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-8 flex flex-wrap gap-3 border-t border-[var(--border)] pt-5">
           <button
-            className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canGoBack}
             type="button"
             onClick={actions.vaiIndietro}
@@ -72,7 +73,7 @@ function WizardShellContent() {
             Indietro
           </button>
           <button
-            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canGoForward || !stepValidation.valid}
             type="button"
             onClick={handleGoForward}
@@ -84,37 +85,60 @@ function WizardShellContent() {
 
       <aside className="space-y-6">
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-          <p className="mb-3 text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
-            Step
-          </p>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+              Percorso
+            </p>
+            <p className="text-xs text-[var(--muted)]">
+              {currentStepNumber}/{WIZARD_STEPS.length}
+            </p>
+          </div>
           <div className="space-y-2">
             {WIZARD_STEPS.map((step) => {
               const active = step.id === state.currentStepId;
               const pastStep = step.numero < currentStepNumber;
               const completedStep = state.completedStepIds.includes(step.id);
               const selectable = active || pastStep || completedStep;
+              const statusLabel = active
+                ? "Corrente"
+                : pastStep || completedStep
+                  ? "Completato"
+                  : "Da fare";
 
               return (
                 <button
                   key={step.id}
-                  className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
+                  className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition ${
                     active
-                      ? "border-[var(--accent)] bg-[var(--surface-soft)]"
-                      : "border-[var(--border)] bg-white"
+                      ? "border-[var(--accent)] bg-[color:rgba(20,184,166,0.12)]"
+                      : pastStep || completedStep
+                        ? "border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--accent)]"
+                        : "border-[var(--border)] bg-[var(--surface-soft)]"
                   } disabled:cursor-not-allowed disabled:opacity-60`}
                   disabled={!selectable}
                   type="button"
                   onClick={() => actions.cambiaStep(step.id)}
                 >
-                  <span className="block font-semibold">
-                    {step.numero}. {step.titolo}
-                  </span>
-                  <span className="mt-1 block text-xs text-[var(--muted)]">
-                    {active
-                      ? "Step corrente"
-                      : pastStep || completedStep
-                        ? "Modifica dati"
-                        : "Disponibile più avanti"}
+                  <span className="flex items-center gap-3">
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                        active
+                          ? "border-[var(--accent)] text-[var(--accent)]"
+                          : pastStep || completedStep
+                            ? "border-[var(--success)] text-[var(--success)]"
+                            : "border-[var(--border)] text-[var(--muted)]"
+                      }`}
+                    >
+                      {step.numero}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">
+                        {step.titolo}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                        {statusLabel}
+                      </span>
+                    </span>
                   </span>
                 </button>
               );
@@ -123,32 +147,31 @@ function WizardShellContent() {
         </div>
 
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-          <p className="mb-3 text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
-            Riepilogo bozza
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+            Sintesi
           </p>
-          <dl className="space-y-3 text-sm">
-            <div>
-              <dt className="text-[var(--muted)]">Cliente</dt>
-              <dd className="font-medium">
-                {summary.customer_full_name || "Non indicato"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[var(--muted)]">Falde inserite</dt>
-              <dd className="font-medium">{summary.surfaces_count}</dd>
-            </div>
-            <div>
-              <dt className="text-[var(--muted)]">Ostacoli inseriti</dt>
-              <dd className="font-medium">{summary.obstacles_count}</dd>
-            </div>
-            <div>
-              <dt className="text-[var(--muted)]">Payload finale</dt>
-              <dd className="font-medium">
-                {payloadResult.ok
-                  ? "Costruibile"
-                  : "In attesa dei dati obbligatori"}
-              </dd>
-            </div>
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <SummaryTile
+              label="Cliente"
+              value={summary.customer_full_name || "Da completare"}
+            />
+            <SummaryTile
+              label="Invio"
+              value={payloadResult.ok ? "Pronto" : "In attesa"}
+            />
+            <SummaryTile label="Falde" value={String(summary.surfaces_count)} />
+            <SummaryTile
+              label="Ostacoli"
+              value={String(summary.obstacles_count)}
+            />
+            <SummaryTile
+              label="Moduli"
+              value={String(summary.layout_modules_count)}
+            />
+            <SummaryTile
+              label="Potenza"
+              value={`${summary.layout_total_power_w} W`}
+            />
           </dl>
         </div>
 
@@ -181,7 +204,7 @@ function renderCurrentStep(stepId: string) {
       return (
         <StepPlaceholder
           title="Invio a n8n"
-          description="L’invio reale non è ancora implementato in questa fase."
+          description="L'invio reale non è ancora implementato in questa fase."
         />
       );
     default:
@@ -201,6 +224,20 @@ function StepPlaceholder({ title, description }: StepPlaceholderProps) {
       <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
         {description}
       </p>
+    </div>
+  );
+}
+
+type SummaryTileProps = {
+  label: string;
+  value: string;
+};
+
+function SummaryTile({ label, value }: SummaryTileProps) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+      <dt className="text-xs text-[var(--muted)]">{label}</dt>
+      <dd className="mt-1 truncate text-sm font-semibold">{value}</dd>
     </div>
   );
 }

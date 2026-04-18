@@ -168,7 +168,9 @@ export function RevisioneStep() {
                   key={`${surface.surface_id}-${obstacle.obstacle_id}`}
                   className="rounded-lg border border-[var(--border)] p-4 text-sm"
                 >
-                  <p className="font-semibold">{obstacle.obstacle_id}</p>
+                  <p className="font-semibold">
+                    {getObstacleDisplayName(obstacle.obstacle_id, obstacle.type)}
+                  </p>
                   <p className="mt-1 text-[var(--muted)]">
                     Falda: {surface.name}. Tipo: {obstacle.type}. Forma:{" "}
                     {obstacle.shape}.
@@ -333,4 +335,12 @@ function DescriptionList({ items }: DescriptionListProps) {
       ))}
     </dl>
   );
+}
+
+function getObstacleDisplayName(obstacleId: string, obstacleType: string): string {
+  if (!obstacleId.startsWith("ostacolo_")) {
+    return obstacleId;
+  }
+
+  return obstacleType;
 }

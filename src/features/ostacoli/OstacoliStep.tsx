@@ -224,7 +224,7 @@ export function OstacoliStep() {
       </section>
 
       {selectedSurface && (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(300px,0.9fr)_minmax(360px,1.1fr)]">
           <section className="rounded-lg border border-[var(--border)] bg-white p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
@@ -252,6 +252,7 @@ export function OstacoliStep() {
                 Nome ostacolo *
                 <input
                   className={inputClassName}
+                  placeholder="Esempio: Camino cucina"
                   value={draft.obstacle_id}
                   onChange={(event) =>
                     setDraft((currentDraft) => ({
@@ -307,6 +308,7 @@ export function OstacoliStep() {
                 <input
                   className={inputClassName}
                   min={0}
+                  placeholder="Esempio: 30"
                   type="number"
                   value={draft.safety_margin_cm}
                   onChange={(event) =>
@@ -419,7 +421,7 @@ export function OstacoliStep() {
             </div>
           </section>
 
-          <aside className="space-y-4">
+          <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
             <ObstaclePreview
               draft={draft}
               draftObstacle={draftObstacle}
@@ -446,7 +448,9 @@ export function OstacoliStep() {
                       key={obstacle.obstacle_id}
                       className="rounded-lg border border-[var(--border)] p-3 text-sm"
                     >
-                      <p className="font-semibold">{obstacle.obstacle_id}</p>
+                      <p className="font-semibold">
+                        {getObstacleDisplayName(obstacle)}
+                      </p>
                       <p className="mt-1 text-[var(--muted)]">
                         {getObstacleTypeLabel(obstacle.type)} -{" "}
                         {getObstacleShapeLabel(obstacle.shape)}
@@ -508,6 +512,7 @@ function NumberField({ label, value, onChange }: NumberFieldProps) {
       <input
         className={inputClassName}
         min={0}
+        placeholder="Misura in cm"
         type="number"
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -622,9 +627,9 @@ function GeometryPreviewSvg({
       viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
     >
       <polygon
-        fill="#eef3f1"
+        fill="#10201d"
         points={faldaPoints}
-        stroke="#0f766e"
+        stroke="#14b8a6"
         strokeWidth="2"
       />
 
@@ -664,9 +669,9 @@ type ObstacleSvgProps = {
 function ObstacleSvg({ mapPoint, obstacle, surface, tone }: ObstacleSvgProps) {
   const geometry = creaOstacoloGeometrico(obstacle, surface);
   const strokeColor =
-    tone === "invalid" ? "#b91c1c" : tone === "valid" ? "#15803d" : "#334155";
+    tone === "invalid" ? "#fca5a5" : tone === "valid" ? "#6ee7b7" : "#93c5fd";
   const fillColor =
-    tone === "invalid" ? "#fee2e2" : tone === "valid" ? "#dcfce7" : "#dbeafe";
+    tone === "invalid" ? "#7f1d1d" : tone === "valid" ? "#064e3b" : "#1e3a8a";
 
   if (geometry.shape === "rect") {
     const points = geometry.vertices.map(mapPoint).map(toSvgPoint).join(" ");
@@ -736,7 +741,7 @@ function ObstacleSvg({ mapPoint, obstacle, surface, tone }: ObstacleSvgProps) {
 
 function createEmptyObstacleDraft(): ObstacleDraft {
   return {
-    obstacle_id: `ostacolo_${Date.now()}`,
+    obstacle_id: "",
     type: "camino",
     shape: "rect",
     safety_margin_cm: "",
@@ -925,6 +930,14 @@ function getObstacleTypeLabel(type: ObstacleType): string {
 
 function getObstacleShapeLabel(shape: ObstacleShape): string {
   return shape === "rect" ? "Rettangolare" : "Circolare";
+}
+
+function getObstacleDisplayName(obstacle: ObstacleData): string {
+  if (!obstacle.obstacle_id.startsWith("ostacolo_")) {
+    return obstacle.obstacle_id;
+  }
+
+  return getObstacleTypeLabel(obstacle.type);
 }
 
 function getSurfaceLabel(surface: SurfaceData, index: number): string {

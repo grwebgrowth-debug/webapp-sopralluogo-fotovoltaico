@@ -172,13 +172,14 @@ export function FaldeStep() {
                   <input
                     className={inputClassName}
                     min={0}
+                    placeholder="Esempio: 20"
                     type="number"
-                    value={surface.tilt_deg}
+                    value={formatNumberInput(surface.tilt_deg)}
                     onChange={(event) =>
                       updateSurface(surface.surface_id, (currentSurface) => ({
                         ...currentSurface,
                         tilt_deg: readNonNegativeNumber(
-                          event.target.valueAsNumber,
+                          event.target.value,
                         ),
                       }))
                     }
@@ -190,13 +191,14 @@ export function FaldeStep() {
                   <input
                     className={inputClassName}
                     min={0}
+                    placeholder="Esempio: 30"
                     type="number"
-                    value={surface.edge_clearance_cm}
+                    value={formatNumberInput(surface.edge_clearance_cm)}
                     onChange={(event) =>
                       updateSurface(surface.surface_id, (currentSurface) => ({
                         ...currentSurface,
                         edge_clearance_cm: readNonNegativeNumber(
-                          event.target.valueAsNumber,
+                          event.target.value,
                         ),
                       }))
                     }
@@ -318,9 +320,10 @@ function renderNumberField(
       <input
         className={inputClassName}
         min={0}
+        placeholder="Misura in cm"
         type="number"
-        value={value}
-        onChange={(event) => onChange(readNonNegativeNumber(event.target.valueAsNumber))}
+        value={formatNumberInput(value)}
+        onChange={(event) => onChange(readNonNegativeNumber(event.target.value))}
       />
     </label>
   );
@@ -367,10 +370,20 @@ function getSurfacePreview(surface: SurfaceData): string {
   } cm.`;
 }
 
-function readNonNegativeNumber(value: number): number {
-  if (!Number.isFinite(value) || value < 0) {
+function readNonNegativeNumber(value: string): number {
+  if (value.trim() === "") {
     return 0;
   }
 
-  return value;
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return 0;
+  }
+
+  return numericValue;
+}
+
+function formatNumberInput(value: number): string {
+  return value > 0 ? String(value) : "";
 }

@@ -60,10 +60,10 @@ export function TettoStep() {
   const selectedOption = ROOF_TYPE_OPTIONS.find(
     (option) => option.value === selectedRoofType,
   );
-  const customSurfaceCount = state.roof.custom_surface_count ?? 3;
+  const customSurfaceCount = state.roof.custom_surface_count;
   const plannedSurfaceCount =
     selectedRoofType === "piu_falde_personalizzato"
-      ? customSurfaceCount
+      ? customSurfaceCount ?? 0
       : selectedOption?.defaultSurfaceCount ?? 0;
 
   function handleSelectRoofType(option: (typeof ROOF_TYPE_OPTIONS)[number]) {
@@ -132,11 +132,12 @@ export function TettoStep() {
             className="mt-2 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
             min={1}
             max={12}
+            placeholder="Esempio: 3"
             type="number"
-            value={customSurfaceCount}
+            value={customSurfaceCount ? String(customSurfaceCount) : ""}
             onChange={(event) =>
               actions.impostaNumeroFaldePersonalizzato(
-                clampSurfaceCount(event.target.valueAsNumber),
+                readSurfaceCount(event.target.value),
               )
             }
           />
@@ -148,12 +149,12 @@ export function TettoStep() {
           Falde attualmente presenti: {state.roof.surfaces.length}
         </p>
         <p className="mt-1 text-[var(--muted)]">
-          Puoi preparare o riallineare l’elenco delle falde senza introdurre
+          Puoi preparare o riallineare l'elenco delle falde senza introdurre
           ancora logica geometrica automatica.
         </p>
         <button
           className="mt-4 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!selectedRoofType}
+          disabled={!selectedRoofType || !plannedSurfaceCount}
           type="button"
           onClick={handlePrepareSurfaces}
         >
@@ -164,10 +165,16 @@ export function TettoStep() {
   );
 }
 
-function clampSurfaceCount(value: number): number {
-  if (!Number.isFinite(value)) {
-    return 1;
+function readSurfaceCount(value: string): number | null {
+  if (value.trim() === "") {
+    return null;
   }
 
-  return Math.min(12, Math.max(1, Math.floor(value)));
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return null;
+  }
+
+  return Math.min(12, Math.max(1, Math.floor(numericValue)));
 }

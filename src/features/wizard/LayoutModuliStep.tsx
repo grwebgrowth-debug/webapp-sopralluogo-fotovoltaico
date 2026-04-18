@@ -220,9 +220,9 @@ function LayoutPreviewSvg({ surface, surfaceLayout }: LayoutPreviewSvgProps) {
       viewBox="0 0 560 360"
     >
       <polygon
-        fill="#eef3f1"
+        fill="#10201d"
         points={faldaPoints}
-        stroke="#0f766e"
+        stroke="#14b8a6"
         strokeWidth="2"
       />
 
@@ -258,9 +258,10 @@ function ModuleSvg({ mapPoint, module }: ModuleSvgProps) {
 
   return (
     <rect
-      fill="#dbeafe"
+      fill="#93c5fd"
+      fillOpacity="0.78"
       height={Math.abs(bottomRight.y_cm - topLeft.y_cm)}
-      stroke="#1d4ed8"
+      stroke="#bfdbfe"
       strokeWidth="1"
       width={Math.abs(bottomRight.x_cm - topLeft.x_cm)}
       x={topLeft.x_cm}
@@ -280,10 +281,10 @@ function ObstacleSvg({ mapPoint, obstacle }: ObstacleSvgProps) {
 
     return (
       <polygon
-        fill="#fee2e2"
+        fill="#fca5a5"
         fillOpacity="0.85"
         points={points}
-        stroke="#b91c1c"
+        stroke="#fecaca"
         strokeDasharray="4 3"
         strokeWidth="1.5"
       />
@@ -300,10 +301,10 @@ function ObstacleSvg({ mapPoint, obstacle }: ObstacleSvgProps) {
     <circle
       cx={center.x_cm}
       cy={center.y_cm}
-      fill="#fee2e2"
+      fill="#fca5a5"
       fillOpacity="0.85"
       r={Math.abs(radiusPoint.x_cm - center.x_cm)}
-      stroke="#b91c1c"
+      stroke="#fecaca"
       strokeDasharray="4 3"
       strokeWidth="1.5"
     />

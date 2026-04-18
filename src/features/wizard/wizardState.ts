@@ -67,7 +67,7 @@ export type WizardAction =
     }
   | {
       type: "roof/set_custom_surface_count";
-      count: number;
+      count: number | null;
     }
   | {
       type: "surfaces/replace";
@@ -214,7 +214,7 @@ export function impostaTipoTetto(
       roof_type: roofType,
       custom_surface_count:
         roofType === "piu_falde_personalizzato"
-          ? state.roof.custom_surface_count ?? 3
+          ? state.roof.custom_surface_count
           : null,
     },
     preliminary_layout: null,
@@ -223,7 +223,7 @@ export function impostaTipoTetto(
 
 export function impostaNumeroFaldePersonalizzato(
   state: WizardState,
-  count: number,
+  count: number | null,
 ): WizardState {
   return touchState({
     ...state,
