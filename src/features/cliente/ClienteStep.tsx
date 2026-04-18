@@ -19,6 +19,16 @@ export function ClienteStep() {
           Inserisci i dati minimi del lavoro. I campi obbligatori sono nome,
           cognome, indirizzo e data sopralluogo.
         </p>
+        {state.active_client_profile && (
+          <p className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm text-[var(--muted)]">
+            Profilo attivo:{" "}
+            <strong className="text-[var(--foreground)]">
+              {state.active_client_profile.company_name ||
+                state.active_client_profile.profile_name}
+            </strong>
+            . Il tecnico predefinito viene compilato quando il campo è vuoto.
+          </p>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

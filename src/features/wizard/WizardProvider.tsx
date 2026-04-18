@@ -12,6 +12,7 @@ import {
 import type { RoofType, WizardStepId } from "@/types/domain";
 import type { PreliminaryModuleLayout } from "@/types/layout";
 import type { PanelTechnicalData } from "@/types/panels";
+import type { SurveyPhoto } from "@/types/photos";
 import type {
   CustomerData,
   InspectionData,
@@ -19,6 +20,10 @@ import type {
   PanelSelection,
   SurfaceData,
 } from "@/types/survey";
+import {
+  createClientProfileSnapshot,
+  useClientProfiles,
+} from "@/lib/clientProfiles";
 import {
   clearPersistedWizardState,
   loadPersistedWizardState,
@@ -55,6 +60,12 @@ type WizardActions = {
   ) => void;
   impostaDatiTecniciPannello: (technicalData: PanelTechnicalData) => void;
   impostaLayoutPreliminare: (layout: PreliminaryModuleLayout | null) => void;
+  aggiungiFotoSopralluogo: (photos: SurveyPhoto[]) => void;
+  aggiornaFotoSopralluogo: (
+    photoId: string,
+    photo: Partial<SurveyPhoto>,
+  ) => void;
+  eliminaFotoSopralluogo: (photoId: string) => void;
   cambiaStep: (stepId: WizardStepId) => void;
   vaiAvanti: () => void;
   vaiIndietro: () => void;
@@ -75,6 +86,7 @@ type WizardProviderProps = {
 };
 
 export function WizardProvider({ children }: WizardProviderProps) {
+  const { activeProfile } = useClientProfiles();
   const [hydrated, setHydrated] = useState(false);
   const [state, dispatch] = useReducer(wizardReducer, undefined, () =>
     createEmptyWizardState(),
@@ -95,6 +107,20 @@ export function WizardProvider({ children }: WizardProviderProps) {
       savePersistedWizardState(state);
     }
   }, [hydrated, state]);
+
+  useEffect(() => {
+    dispatch({
+      type: "profile/apply",
+      profile: activeProfile ? createClientProfileSnapshot(activeProfile) : null,
+    });
+
+    if (activeProfile?.default_technician && !state.inspection.technician.trim()) {
+      dispatch({
+        type: "inspection/update",
+        inspection: { technician: activeProfile.default_technician },
+      });
+    }
+  }, [activeProfile, state.inspection.technician]);
 
   const actions = useMemo<WizardActions>(
     () => ({
@@ -127,6 +153,12 @@ export function WizardProvider({ children }: WizardProviderProps) {
         dispatch({ type: "panel/set_technical_data", technicalData }),
       impostaLayoutPreliminare: (layout) =>
         dispatch({ type: "layout/set", layout }),
+      aggiungiFotoSopralluogo: (photos) =>
+        dispatch({ type: "photos/add", photos }),
+      aggiornaFotoSopralluogo: (photoId, photo) =>
+        dispatch({ type: "photo/update", photoId, photo }),
+      eliminaFotoSopralluogo: (photoId) =>
+        dispatch({ type: "photo/delete", photoId }),
       cambiaStep: (stepId) => dispatch({ type: "wizard/change_step", stepId }),
       vaiAvanti: () => {
         const nextStepId = getNextWizardStepId(state.currentStepId);

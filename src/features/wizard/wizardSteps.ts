@@ -46,14 +46,20 @@ export const WIZARD_STEPS = [
     descrizione: "Calcolo tecnico preliminare dei moduli inseribili sulle falde.",
   },
   {
-    id: "revisione",
+    id: "foto",
     numero: 7,
+    titolo: "Foto sopralluogo",
+    descrizione: "Raccolta immagini e note fotografiche del rilievo.",
+  },
+  {
+    id: "revisione",
+    numero: 8,
     titolo: "Revisione tecnica",
     descrizione: "Controllo completo dei dati prima della conferma finale.",
   },
   {
     id: "invio",
-    numero: 8,
+    numero: 9,
     titolo: "Invio a n8n",
     descrizione: "Invio del payload finale per elaborazione e salvataggio.",
   },

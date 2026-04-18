@@ -2,6 +2,8 @@ import type { RoofType, WizardStepId } from "@/types/domain";
 import { WIZARD_STEP_IDS } from "@/types/domain";
 import type { PreliminaryModuleLayout } from "@/types/layout";
 import type { PanelTechnicalData } from "@/types/panels";
+import type { SurveyPhoto } from "@/types/photos";
+import type { ActiveClientProfileSnapshot } from "@/types/profiles";
 import type {
   CustomerData,
   InspectionData,
@@ -27,6 +29,8 @@ export type WizardState = {
   panel_selection: PanelSelection;
   panel_technical_data: PanelTechnicalData;
   preliminary_layout: PreliminaryModuleLayout | null;
+  photos: SurveyPhoto[];
+  active_client_profile: ActiveClientProfileSnapshot | null;
   meta: SurveyMeta;
   updated_at: string | null;
 };
@@ -39,6 +43,8 @@ export type WizardSummary = {
   panel_selected: boolean;
   layout_modules_count: number;
   layout_total_power_w: number;
+  photos_count: number;
+  active_company_name: string | null;
 };
 
 export type WizardAction =
@@ -106,6 +112,23 @@ export type WizardAction =
   | {
       type: "layout/set";
       layout: PreliminaryModuleLayout | null;
+    }
+  | {
+      type: "photos/add";
+      photos: SurveyPhoto[];
+    }
+  | {
+      type: "photo/update";
+      photoId: string;
+      photo: Partial<SurveyPhoto>;
+    }
+  | {
+      type: "photo/delete";
+      photoId: string;
+    }
+  | {
+      type: "profile/apply";
+      profile: ActiveClientProfileSnapshot | null;
     };
 
 export function createEmptyCustomerData(): CustomerData {
@@ -170,6 +193,8 @@ export function createEmptyWizardState(): WizardState {
     panel_selection: createEmptyPanelSelection(),
     panel_technical_data: createEmptyPanelTechnicalData(),
     preliminary_layout: null,
+    photos: [],
+    active_client_profile: null,
     meta: createSurveyMeta(),
     updated_at: null,
   };
@@ -375,6 +400,51 @@ export function impostaLayoutPreliminare(
   });
 }
 
+export function aggiungiFotoSopralluogo(
+  state: WizardState,
+  photos: SurveyPhoto[],
+): WizardState {
+  return touchState({
+    ...state,
+    photos: [...state.photos, ...photos],
+  });
+}
+
+export function aggiornaFotoSopralluogo(
+  state: WizardState,
+  photoId: string,
+  photo: Partial<SurveyPhoto>,
+): WizardState {
+  return touchState({
+    ...state,
+    photos: state.photos.map((currentPhoto) =>
+      currentPhoto.photo_id === photoId
+        ? { ...currentPhoto, ...photo }
+        : currentPhoto,
+    ),
+  });
+}
+
+export function eliminaFotoSopralluogo(
+  state: WizardState,
+  photoId: string,
+): WizardState {
+  return touchState({
+    ...state,
+    photos: state.photos.filter((photo) => photo.photo_id !== photoId),
+  });
+}
+
+export function applicaProfiloClienteAttivo(
+  state: WizardState,
+  profile: ActiveClientProfileSnapshot | null,
+): WizardState {
+  return touchState({
+    ...state,
+    active_client_profile: profile,
+  });
+}
+
 export function cambiaStep(
   state: WizardState,
   stepId: WizardStepId,
@@ -435,6 +505,14 @@ export function wizardReducer(
       return impostaDatiTecniciPannello(state, action.technicalData);
     case "layout/set":
       return impostaLayoutPreliminare(state, action.layout);
+    case "photos/add":
+      return aggiungiFotoSopralluogo(state, action.photos);
+    case "photo/update":
+      return aggiornaFotoSopralluogo(state, action.photoId, action.photo);
+    case "photo/delete":
+      return eliminaFotoSopralluogo(state, action.photoId);
+    case "profile/apply":
+      return applicaProfiloClienteAttivo(state, action.profile);
     default:
       return state;
   }
@@ -456,6 +534,8 @@ export function getWizardSummary(state: WizardState): WizardSummary {
     ),
     layout_modules_count: state.preliminary_layout?.total_modules ?? 0,
     layout_total_power_w: state.preliminary_layout?.total_power_w ?? 0,
+    photos_count: state.photos.length,
+    active_company_name: state.active_client_profile?.company_name || null,
   };
 }
 

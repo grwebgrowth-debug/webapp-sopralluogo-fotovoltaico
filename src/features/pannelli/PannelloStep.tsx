@@ -78,6 +78,22 @@ export function PannelloStep() {
         </div>
       )}
 
+      {state.active_client_profile && (
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]">
+          <p className="font-semibold text-[var(--foreground)]">
+            Profilo attivo:{" "}
+            {state.active_client_profile.company_name ||
+              state.active_client_profile.profile_name}
+          </p>
+          <p className="mt-1">
+            Catalogo previsto da Google Sheet tramite n8n. Endpoint configurato:{" "}
+            {state.active_client_profile.panel_catalog_endpoint
+              ? "sì"
+              : "non ancora indicato"}.
+          </p>
+        </section>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         {catalogItems.length > 0 ? (
           <>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { WizardStepId } from "@/types/domain";
+import { getSurveyPhotoTypeLabel } from "@/features/foto/FotoStep";
 import { inviaSopralluogoAN8n } from "@/lib/api/n8n";
 import { formattaWatt } from "@/lib/formatters/units";
 import { useWizard } from "@/features/wizard/WizardProvider";
@@ -86,6 +87,47 @@ export function RevisioneStep() {
           </ul>
         </section>
       )}
+
+      <ReviewSection
+        title="Profilo cliente"
+        onEdit={() => {
+          window.location.href = "/impostazioni";
+        }}
+      >
+        {state.active_client_profile ? (
+          <DescriptionList
+            items={[
+              [
+                "Azienda",
+                state.active_client_profile.company_name || "Non indicata",
+              ],
+              ["Profilo", state.active_client_profile.profile_name],
+              ["Codice cliente", state.active_client_profile.client_code],
+              [
+                "Tecnico predefinito",
+                state.active_client_profile.default_technician ||
+                  "Non indicato",
+              ],
+              [
+                "Endpoint catalogo pannelli",
+                state.active_client_profile.panel_catalog_endpoint
+                  ? "Configurato"
+                  : "Non configurato",
+              ],
+              [
+                "Endpoint invio sopralluogo",
+                state.active_client_profile.survey_submit_endpoint
+                  ? "Configurato"
+                  : "Non configurato",
+              ],
+            ]}
+          />
+        ) : (
+          <p className="text-sm text-[var(--muted)]">
+            Nessun profilo cliente attivo.
+          </p>
+        )}
+      </ReviewSection>
 
       <ReviewSection
         title="Dati cliente"
@@ -252,6 +294,44 @@ export function RevisioneStep() {
           <p className="text-sm text-[var(--muted)]">
             Layout moduli non ancora calcolato.
           </p>
+        )}
+      </ReviewSection>
+
+      <ReviewSection title="Foto sopralluogo" onEdit={() => actions.cambiaStep("foto")}>
+        <DescriptionList
+          items={[
+            ["Foto caricate", String(state.photos.length)],
+            [
+              "Obbligo foto",
+              state.active_client_profile?.require_photos_before_submit
+                ? "Attivo per il profilo cliente"
+                : "Non attivo",
+            ],
+          ]}
+        />
+        {state.photos.length === 0 ? (
+          <p className="mt-4 text-sm text-[var(--muted)]">
+            Nessuna foto inserita.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {state.photos.map((photo) => (
+              <div
+                key={photo.photo_id}
+                className="rounded-lg border border-[var(--border)] p-4 text-sm"
+              >
+                <p className="font-semibold">
+                  {getSurveyPhotoTypeLabel(photo.type)}
+                </p>
+                <p className="mt-1 text-[var(--muted)]">
+                  File: {photo.file_name || "Nome file non disponibile"}.
+                </p>
+                <p className="mt-1 text-[var(--muted)]">
+                  Nota: {photo.note || "Nessuna nota"}.
+                </p>
+              </div>
+            ))}
+          </div>
         )}
       </ReviewSection>
 

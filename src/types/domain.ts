@@ -5,6 +5,7 @@ export const WIZARD_STEP_IDS = [
   "ostacoli",
   "pannello",
   "layout_moduli",
+  "foto",
   "revisione",
   "invio",
 ] as const;

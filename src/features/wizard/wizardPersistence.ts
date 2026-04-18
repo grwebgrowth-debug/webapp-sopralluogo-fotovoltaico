@@ -11,6 +11,8 @@ import type {
   SurfaceModuleLayout,
 } from "@/types/layout";
 import type { PanelTechnicalData } from "@/types/panels";
+import type { SurveyPhoto } from "@/types/photos";
+import type { ActiveClientProfileSnapshot } from "@/types/profiles";
 import type {
   CircleObstacleDimensions,
   CustomerData,
@@ -41,6 +43,7 @@ type PersistedWizardState = WizardState & {
 export function serializeWizardState(state: WizardState): string {
   const persistedState: PersistedWizardState = {
     ...state,
+    photos: state.photos.map(stripPhotoForStorage),
     storage_version: WIZARD_STORAGE_VERSION,
   };
 
@@ -114,6 +117,12 @@ export function normalizeWizardState(value: unknown): WizardState | null {
     value.panel_technical_data,
   );
   const preliminaryLayout = normalizePreliminaryLayout(value.preliminary_layout);
+  const photos = Array.isArray(value.photos)
+    ? value.photos.map(normalizeSurveyPhoto).filter(isSurveyPhoto)
+    : [];
+  const activeClientProfile = normalizeActiveClientProfile(
+    value.active_client_profile,
+  );
   const completedStepIds = Array.isArray(value.completedStepIds)
     ? value.completedStepIds.filter(isWizardStepId)
     : [];
@@ -133,6 +142,8 @@ export function normalizeWizardState(value: unknown): WizardState | null {
     panel_selection: panelSelection,
     panel_technical_data: panelTechnicalData,
     preliminary_layout: preliminaryLayout,
+    photos,
+    active_client_profile: activeClientProfile,
     meta: createSurveyMeta(),
     updated_at: readNullableString(value.updated_at),
   };
@@ -199,6 +210,66 @@ function normalizePreliminaryLayout(
     messages: Array.isArray(value.messages)
       ? value.messages.filter(isString)
       : [],
+  };
+}
+
+function normalizeSurveyPhoto(value: unknown): SurveyPhoto | null {
+  if (
+    !isRecord(value) ||
+    !isString(value.photo_id) ||
+    !isSurveyPhotoType(value.type)
+  ) {
+    return null;
+  }
+
+  return {
+    photo_id: value.photo_id,
+    type: value.type,
+    note: readStringField(value, "note"),
+    file_name: readStringField(value, "file_name"),
+    file_size: readNumberField(value, "file_size"),
+    mime_type: readStringField(value, "mime_type"),
+    added_at: readStringField(value, "added_at"),
+  };
+}
+
+function isSurveyPhoto(value: SurveyPhoto | null): value is SurveyPhoto {
+  return value !== null;
+}
+
+function normalizeActiveClientProfile(
+  value: unknown,
+): ActiveClientProfileSnapshot | null {
+  if (!isRecord(value) || !isString(value.profile_id)) {
+    return null;
+  }
+
+  return {
+    profile_id: value.profile_id,
+    profile_name: readStringField(value, "profile_name"),
+    company_name: readStringField(value, "company_name"),
+    client_code: readStringField(value, "client_code"),
+    default_technician: readStringField(value, "default_technician"),
+    preferred_theme:
+      value.preferred_theme === "scuro_verde" ||
+      value.preferred_theme === "scuro_blu"
+        ? value.preferred_theme
+        : "scuro_teal",
+    n8n_base_url: readStringField(value, "n8n_base_url"),
+    survey_submit_endpoint: readStringField(value, "survey_submit_endpoint"),
+    panel_catalog_endpoint: readStringField(value, "panel_catalog_endpoint"),
+    google_sheet_panel_catalog: readStringField(
+      value,
+      "google_sheet_panel_catalog",
+    ),
+    google_sheet_surveys: readStringField(value, "google_sheet_surveys"),
+    google_sheet_price_list: readStringField(
+      value,
+      "google_sheet_price_list",
+    ),
+    require_photos_before_submit: Boolean(
+      value.require_photos_before_submit,
+    ),
   };
 }
 
@@ -349,6 +420,17 @@ function isWizardStepId(value: unknown): value is WizardState["currentStepId"] {
   return isString(value) && WIZARD_STEP_IDS.includes(value as never);
 }
 
+function isSurveyPhotoType(value: unknown): value is SurveyPhoto["type"] {
+  return (
+    value === "tetto_panoramica" ||
+    value === "falda" ||
+    value === "ostacolo" ||
+    value === "quadro_elettrico" ||
+    value === "contatore" ||
+    value === "altro"
+  );
+}
+
 function isRoofType(value: unknown): value is NonNullable<WizardState["roof"]["roof_type"]> {
   return isString(value) && ROOF_TYPES.includes(value as never);
 }
@@ -391,4 +473,9 @@ function readString(value: unknown, fallback: string): string {
 
 function readNullableString(value: unknown): string | null {
   return isString(value) ? value : null;
+}
+
+function stripPhotoForStorage(photo: SurveyPhoto): SurveyPhoto {
+  const { preview_url: _previewUrl, ...persistablePhoto } = photo;
+  return persistablePhoto;
 }

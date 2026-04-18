@@ -119,6 +119,16 @@ export function validateWizardStep(
     }
   }
 
+  if (
+    stepId === "foto" &&
+    state.active_client_profile?.require_photos_before_submit &&
+    state.photos.length === 0
+  ) {
+    errors.push(
+      "Il profilo attivo richiede almeno una foto prima dell'invio.",
+    );
+  }
+
   if (stepId === "revisione" || stepId === "invio") {
     errors.push(...validateFinalSurvey(state).errors);
   }
@@ -138,6 +148,7 @@ export function validateFinalSurvey(state: WizardState): WizardStepValidation {
     "ostacoli",
     "pannello",
     "layout_moduli",
+    "foto",
   ];
 
   checkedSteps.forEach((stepId) => {

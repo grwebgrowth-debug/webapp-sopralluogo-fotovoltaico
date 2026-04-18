@@ -2,6 +2,7 @@
 
 import { ClienteStep } from "@/features/cliente/ClienteStep";
 import { FaldeStep } from "@/features/falde/FaldeStep";
+import { FotoStep } from "@/features/foto/FotoStep";
 import { OstacoliStep } from "@/features/ostacoli/OstacoliStep";
 import { PannelloStep } from "@/features/pannelli/PannelloStep";
 import { RevisioneStep } from "@/features/revisione/RevisioneStep";
@@ -169,8 +170,8 @@ function WizardShellContent() {
               value={String(summary.layout_modules_count)}
             />
             <SummaryTile
-              label="Potenza"
-              value={`${summary.layout_total_power_w} W`}
+              label="Foto"
+              value={String(summary.photos_count)}
             />
           </dl>
         </div>
@@ -198,6 +199,8 @@ function renderCurrentStep(stepId: string) {
       return <PannelloStep />;
     case "layout_moduli":
       return <LayoutModuliStep />;
+    case "foto":
+      return <FotoStep />;
     case "revisione":
       return <RevisioneStep />;
     case "invio":
