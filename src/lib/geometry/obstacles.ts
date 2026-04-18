@@ -5,6 +5,7 @@ export type OstacoloRettangolareGeometrico = {
   obstacle_id: string;
   shape: "rect";
   anchor: Punto2D;
+  center: Punto2D;
   width_cm: number;
   height_cm: number;
   safety_margin_cm: number;
@@ -40,15 +41,25 @@ export function creaOstacoloRettangolare(
   obstacle: ObstacleData & { shape: "rect" },
   surface: SurfaceData,
 ): OstacoloRettangolareGeometrico {
-  const anchor = getRectAnchor(obstacle, surface);
+  const center = getObstacleCenter(obstacle, surface);
+  const anchor = {
+    x_cm: center.x_cm - obstacle.dimensions.width_cm / 2,
+    y_cm: center.y_cm - obstacle.dimensions.height_cm / 2,
+  };
   const vertices = getRectVertices(
     anchor,
     obstacle.dimensions.width_cm,
     obstacle.dimensions.height_cm,
   );
   const expandedAnchor = {
-    x_cm: anchor.x_cm - obstacle.safety_margin_cm,
-    y_cm: anchor.y_cm - obstacle.safety_margin_cm,
+    x_cm:
+      center.x_cm -
+      obstacle.dimensions.width_cm / 2 -
+      obstacle.safety_margin_cm,
+    y_cm:
+      center.y_cm -
+      obstacle.dimensions.height_cm / 2 -
+      obstacle.safety_margin_cm,
   };
   const expandedVertices = getRectVertices(
     expandedAnchor,
@@ -60,6 +71,7 @@ export function creaOstacoloRettangolare(
     obstacle_id: obstacle.obstacle_id,
     shape: "rect",
     anchor,
+    center,
     width_cm: obstacle.dimensions.width_cm,
     height_cm: obstacle.dimensions.height_cm,
     safety_margin_cm: obstacle.safety_margin_cm,
@@ -72,7 +84,7 @@ export function creaOstacoloCircolare(
   obstacle: ObstacleData & { shape: "circle" },
   surface: SurfaceData,
 ): OstacoloCircolareGeometrico {
-  const center = getCircleCenter(obstacle, surface);
+  const center = getObstacleCenter(obstacle, surface);
   const radius = obstacle.dimensions.diameter_cm / 2;
 
   return {
@@ -103,38 +115,7 @@ export function creaOstacoloCircolarePlaceholder(
   return creaOstacoloCircolare(obstacle, createFallbackSurface());
 }
 
-function getRectAnchor(
-  obstacle: ObstacleData & { shape: "rect" },
-  surface: SurfaceData,
-): Punto2D {
-  if (surface.shape === "triangle") {
-    if (!("distance_from_base_right_corner_cm" in obstacle.position)) {
-      return { x_cm: 0, y_cm: 0 };
-    }
-
-    return {
-      x_cm:
-        surface.dimensions.base_cm -
-        obstacle.position.distance_from_base_right_corner_cm -
-        obstacle.dimensions.width_cm,
-      y_cm: obstacle.position.height_from_base_cm,
-    };
-  }
-
-  if (!("distance_from_base_cm" in obstacle.position)) {
-    return { x_cm: 0, y_cm: 0 };
-  }
-
-  return {
-    x_cm: obstacle.position.distance_from_left_cm,
-    y_cm: obstacle.position.distance_from_base_cm,
-  };
-}
-
-function getCircleCenter(
-  obstacle: ObstacleData & { shape: "circle" },
-  surface: SurfaceData,
-): Punto2D {
+function getObstacleCenter(obstacle: ObstacleData, surface: SurfaceData): Punto2D {
   if (surface.shape === "triangle") {
     if (!("distance_from_base_right_corner_cm" in obstacle.position)) {
       return { x_cm: 0, y_cm: 0 };

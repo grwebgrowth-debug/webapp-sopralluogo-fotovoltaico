@@ -29,7 +29,7 @@ export async function recuperaCatalogoPannelliDaN8n(
       ok: false,
       reason: "not_configured",
       error:
-        "Endpoint n8n per il catalogo pannelli non configurato. Puoi inserire marca e modello manualmente.",
+        "Catalogo pannelli non ancora collegato a Google Sheet tramite n8n. Puoi inserire marca, modello e dati tecnici manualmente.",
     };
   }
 
@@ -45,7 +45,8 @@ export async function recuperaCatalogoPannelliDaN8n(
       return {
         ok: false,
         reason: "network_error",
-        error: "n8n non ha restituito il catalogo pannelli.",
+        error:
+          "n8n non ha restituito il catalogo pannelli letto da Google Sheet.",
       };
     }
 
@@ -67,7 +68,8 @@ export async function recuperaCatalogoPannelliDaN8n(
     return {
       ok: false,
       reason: "network_error",
-      error: "Errore durante il recupero del catalogo pannelli da n8n.",
+      error:
+        "Errore durante il recupero del catalogo pannelli da Google Sheet tramite n8n.",
     };
   }
 }

@@ -67,8 +67,8 @@ export function PannelloStep() {
       <div>
         <h2 className="text-2xl font-semibold">Pannello</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Seleziona marca e modello del pannello. Quando il catalogo n8n sarà
-          configurato, i dettagli arriveranno dal Google Sheet tramite n8n.
+          Seleziona marca e modello del pannello. La fonte prevista è il
+          catalogo pannelli su Google Sheet, letto dalla web app tramite n8n.
         </p>
       </div>
 
@@ -199,8 +199,8 @@ export function PannelloStep() {
               <strong>{state.panel_selection.model || "Non indicato"}</strong>
             </p>
             <p className="mt-3">
-              I dati tecnici completi saranno mostrati appena il catalogo n8n
-              sarà configurato.
+              Catalogo pannelli non ancora collegato a Google Sheet tramite
+              n8n.
             </p>
           </div>
         )}
@@ -210,9 +210,9 @@ export function PannelloStep() {
         <section className="rounded-lg border border-[var(--border)] bg-white p-5">
           <h3 className="text-lg font-semibold">Dati tecnici per layout</h3>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Inserisci questi dati solo se il catalogo n8n non è disponibile.
-            Senza larghezza, altezza e potenza il layout moduli non viene
-            calcolato.
+            Inserisci questi dati solo finché il catalogo Google Sheet tramite
+            n8n non è disponibile. Senza larghezza, altezza e potenza il layout
+            moduli non viene calcolato.
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <NumberField

@@ -121,14 +121,16 @@ function validaDimensioniBase(
     if (obstacle.position.distance_from_base_right_corner_cm <= 0) {
       return {
         valido: false,
-        errore: "La distanza dall’angolo destro della base è troppo piccola.",
+        errore:
+          "La distanza del centro dall'angolo destro della base è troppo piccola.",
       };
     }
 
     if (obstacle.position.height_from_base_cm <= 0) {
       return {
         valido: false,
-        errore: "L’altezza dalla base (H) deve essere maggiore di zero.",
+        errore:
+          "L'altezza del centro dalla base (H) deve essere maggiore di zero.",
       };
     }
   } else {
@@ -143,14 +145,14 @@ function validaDimensioniBase(
     if (obstacle.position.distance_from_base_cm <= 0) {
       return {
         valido: false,
-        errore: "La distanza dalla base è troppo piccola.",
+        errore: "La distanza del centro dalla base è troppo piccola.",
       };
     }
 
     if (obstacle.position.distance_from_left_cm <= 0) {
       return {
         valido: false,
-        errore: "La distanza dal lato sinistro è troppo piccola.",
+        errore: "La distanza del centro dal lato sinistro è troppo piccola.",
       };
     }
   }

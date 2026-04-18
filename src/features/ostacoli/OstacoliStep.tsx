@@ -30,19 +30,21 @@ type ObstacleDraft = {
   obstacle_id: string;
   type: ObstacleType;
   shape: ObstacleShape;
-  safety_margin_cm: number;
-  width_cm: number;
-  height_cm: number;
-  diameter_cm: number;
-  distance_from_base_cm: number;
-  distance_from_left_cm: number;
-  distance_from_base_right_corner_cm: number;
-  height_from_base_cm: number;
+  safety_margin_cm: NumberDraftValue;
+  width_cm: NumberDraftValue;
+  height_cm: NumberDraftValue;
+  diameter_cm: NumberDraftValue;
+  distance_from_base_cm: NumberDraftValue;
+  distance_from_left_cm: NumberDraftValue;
+  distance_from_base_right_corner_cm: NumberDraftValue;
+  height_from_base_cm: NumberDraftValue;
 };
 
 type ObstacleFormErrors = {
   errors: string[];
 };
+
+type NumberDraftValue = number | "";
 
 const OBSTACLE_TYPE_OPTIONS: Array<{ value: ObstacleType; label: string }> = [
   { value: "camino", label: "Camino" },
@@ -75,6 +77,14 @@ export function OstacoliStep() {
       null,
     [selectedSurfaceId, surfaces],
   );
+  const selectedSurfaceIndex = selectedSurface
+    ? surfaces.findIndex(
+        (surface) => surface.surface_id === selectedSurface.surface_id,
+      )
+    : -1;
+  const selectedSurfaceLabel = selectedSurface
+    ? getSurfaceLabel(selectedSurface, selectedSurfaceIndex)
+    : "";
   const [editingObstacleId, setEditingObstacleId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ObstacleDraft>(() =>
     createEmptyObstacleDraft(),
@@ -172,28 +182,46 @@ export function OstacoliStep() {
         <h2 className="text-2xl font-semibold">Ostacoli</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
           Inserisci gli ostacoli per ogni falda. Le misure sono in centimetri.
-          In questa fase la preview è tecnica e non geometrica avanzata.
+          Le quote di posizione indicano il centro dell'ostacolo.
         </p>
       </div>
 
-      <label className="block text-sm font-medium">
-        Falda su cui lavorare
-        <select
-          className={inputClassName}
-          value={selectedSurface?.surface_id ?? ""}
-          onChange={(event) => {
-            setSelectedSurfaceId(event.target.value);
-            setEditingObstacleId(null);
-            setDraft(createEmptyObstacleDraft());
-          }}
-        >
-          {surfaces.map((surface) => (
-            <option key={surface.surface_id} value={surface.surface_id}>
-              {surface.name || surface.surface_id}
-            </option>
-          ))}
-        </select>
-      </label>
+      <section className="rounded-lg border border-[var(--border)] bg-white p-4">
+        <h3 className="text-sm font-semibold">Falde disponibili</h3>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Passa da una falda all'altra senza perdere gli ostacoli già inseriti.
+        </p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {surfaces.map((surface, index) => {
+            const isSelected = surface.surface_id === selectedSurface?.surface_id;
+
+            return (
+              <button
+                key={surface.surface_id}
+                className={`rounded-lg border p-3 text-left text-sm transition ${
+                  isSelected
+                    ? "border-[var(--accent)] bg-[var(--surface-soft)]"
+                    : "border-[var(--border)] bg-white hover:border-[var(--accent)]"
+                }`}
+                type="button"
+                onClick={() => {
+                  setSelectedSurfaceId(surface.surface_id);
+                  setEditingObstacleId(null);
+                  setDraft(createEmptyObstacleDraft());
+                }}
+              >
+                <span className="font-semibold">
+                  {getSurfaceLabel(surface, index)}
+                </span>
+                <span className="mt-1 block text-[var(--muted)]">
+                  {getSurfaceShapeLabel(surface)} -{" "}
+                  {surface.obstacles.length} ostacoli
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {selectedSurface && (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -204,8 +232,8 @@ export function OstacoliStep() {
                   {editingObstacleId ? "Modifica ostacolo" : "Nuovo ostacolo"}
                 </h3>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  Falda selezionata: {selectedSurface.name}. Riferimenti
-                  posizione: {getPositionModeLabel(selectedSurface)}.
+                  Falda selezionata: {selectedSurfaceLabel}. Riferimenti
+                  posizione del centro: {getPositionModeLabel(selectedSurface)}.
                 </p>
               </div>
               {editingObstacleId && (
@@ -285,7 +313,7 @@ export function OstacoliStep() {
                     updateDraftNumber(
                       setDraft,
                       "safety_margin_cm",
-                      event.target.valueAsNumber,
+                      event.target.value,
                     )
                   }
                 />
@@ -321,7 +349,7 @@ export function OstacoliStep() {
               {selectedSurface.shape === "triangle" ? (
                 <>
                   <NumberField
-                    label="Distanza dall’angolo destro della base"
+                    label="Distanza dall'angolo destro della base (centro)"
                     value={draft.distance_from_base_right_corner_cm}
                     onChange={(value) =>
                       updateDraftNumber(
@@ -332,7 +360,7 @@ export function OstacoliStep() {
                     }
                   />
                   <NumberField
-                    label="Altezza dalla base (H)"
+                    label="Altezza dalla base (H, centro)"
                     value={draft.height_from_base_cm}
                     onChange={(value) =>
                       updateDraftNumber(setDraft, "height_from_base_cm", value)
@@ -342,14 +370,14 @@ export function OstacoliStep() {
               ) : (
                 <>
                   <NumberField
-                    label="Distanza dalla base"
+                    label="Distanza dalla base (centro)"
                     value={draft.distance_from_base_cm}
                     onChange={(value) =>
                       updateDraftNumber(setDraft, "distance_from_base_cm", value)
                     }
                   />
                   <NumberField
-                    label="Distanza dal lato sinistro"
+                    label="Distanza dal lato sinistro (centro)"
                     value={draft.distance_from_left_cm}
                     onChange={(value) =>
                       updateDraftNumber(setDraft, "distance_from_left_cm", value)
@@ -403,6 +431,10 @@ export function OstacoliStep() {
 
             <section className="rounded-lg border border-[var(--border)] bg-white p-5">
               <h3 className="text-lg font-semibold">Ostacoli inseriti</h3>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                {selectedSurfaceLabel}. Clicca su Modifica per riprendere un
+                ostacolo senza perdere la preview della falda.
+              </p>
               {selectedSurface.obstacles.length === 0 ? (
                 <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
                   Nessun ostacolo inserito su questa falda.
@@ -437,7 +469,7 @@ export function OstacoliStep() {
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
-                          className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs"
+                          className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white"
                           type="button"
                           onClick={() => startEditObstacle(obstacle)}
                         >
@@ -465,8 +497,8 @@ export function OstacoliStep() {
 
 type NumberFieldProps = {
   label: string;
-  value: number;
-  onChange: (value: number) => void;
+  value: NumberDraftValue;
+  onChange: (value: string) => void;
 };
 
 function NumberField({ label, value, onChange }: NumberFieldProps) {
@@ -478,7 +510,7 @@ function NumberField({ label, value, onChange }: NumberFieldProps) {
         min={0}
         type="number"
         value={value}
-        onChange={(event) => onChange(event.target.valueAsNumber)}
+        onChange={(event) => onChange(event.target.value)}
       />
     </label>
   );
@@ -642,6 +674,7 @@ function ObstacleSvg({ mapPoint, obstacle, surface, tone }: ObstacleSvgProps) {
       .map(mapPoint)
       .map(toSvgPoint)
       .join(" ");
+    const center = mapPoint(geometry.center);
 
     return (
       <g>
@@ -659,6 +692,7 @@ function ObstacleSvg({ mapPoint, obstacle, surface, tone }: ObstacleSvgProps) {
           stroke={strokeColor}
           strokeWidth="2"
         />
+        <circle cx={center.x_cm} cy={center.y_cm} fill={strokeColor} r="3" />
       </g>
     );
   }
@@ -695,6 +729,7 @@ function ObstacleSvg({ mapPoint, obstacle, surface, tone }: ObstacleSvgProps) {
         stroke={strokeColor}
         strokeWidth="2"
       />
+      <circle cx={center.x_cm} cy={center.y_cm} fill={strokeColor} r="3" />
     </g>
   );
 }
@@ -704,14 +739,14 @@ function createEmptyObstacleDraft(): ObstacleDraft {
     obstacle_id: `ostacolo_${Date.now()}`,
     type: "camino",
     shape: "rect",
-    safety_margin_cm: 30,
-    width_cm: 0,
-    height_cm: 0,
-    diameter_cm: 0,
-    distance_from_base_cm: 0,
-    distance_from_left_cm: 0,
-    distance_from_base_right_corner_cm: 0,
-    height_from_base_cm: 0,
+    safety_margin_cm: "",
+    width_cm: "",
+    height_cm: "",
+    diameter_cm: "",
+    distance_from_base_cm: "",
+    distance_from_left_cm: "",
+    distance_from_base_right_corner_cm: "",
+    height_from_base_cm: "",
   };
 }
 
@@ -747,11 +782,11 @@ function createObstacleFromDraft(
       obstacle_id: draft.obstacle_id.trim(),
       type: draft.type,
       shape: "rect",
-      safety_margin_cm: draft.safety_margin_cm,
+      safety_margin_cm: getDraftNumber(draft.safety_margin_cm),
       position,
       dimensions: {
-        width_cm: draft.width_cm,
-        height_cm: draft.height_cm,
+        width_cm: getDraftNumber(draft.width_cm),
+        height_cm: getDraftNumber(draft.height_cm),
       },
     };
   }
@@ -760,10 +795,10 @@ function createObstacleFromDraft(
     obstacle_id: draft.obstacle_id.trim(),
     type: draft.type,
     shape: "circle",
-    safety_margin_cm: draft.safety_margin_cm,
+    safety_margin_cm: getDraftNumber(draft.safety_margin_cm),
     position,
     dimensions: {
-      diameter_cm: draft.diameter_cm,
+      diameter_cm: getDraftNumber(draft.diameter_cm),
     },
   };
 }
@@ -775,14 +810,14 @@ function createPositionFromDraft(
   if (surface.shape === "triangle") {
     return {
       distance_from_base_right_corner_cm:
-        draft.distance_from_base_right_corner_cm,
-      height_from_base_cm: draft.height_from_base_cm,
+        getDraftNumber(draft.distance_from_base_right_corner_cm),
+      height_from_base_cm: getDraftNumber(draft.height_from_base_cm),
     };
   }
 
   return {
-    distance_from_base_cm: draft.distance_from_base_cm,
-    distance_from_left_cm: draft.distance_from_left_cm,
+    distance_from_base_cm: getDraftNumber(draft.distance_from_base_cm),
+    distance_from_left_cm: getDraftNumber(draft.distance_from_left_cm),
   };
 }
 
@@ -796,51 +831,63 @@ function validateObstacleDraft(
     errors.push("Nome ostacolo obbligatorio.");
   }
 
-  if (draft.safety_margin_cm <= 0) {
+  if (!isPositiveDraftNumber(draft.safety_margin_cm)) {
     errors.push("Margine di sicurezza obbligatorio e maggiore di zero.");
   }
 
   if (draft.shape === "rect") {
-    if (draft.width_cm <= 0) {
+    if (!isPositiveDraftNumber(draft.width_cm)) {
       errors.push("Larghezza ostacolo obbligatoria e maggiore di zero.");
     }
 
-    if (draft.height_cm <= 0) {
+    if (!isPositiveDraftNumber(draft.height_cm)) {
       errors.push("Altezza ostacolo obbligatoria e maggiore di zero.");
     }
   }
 
-  if (draft.shape === "circle" && draft.diameter_cm <= 0) {
+  if (draft.shape === "circle" && !isPositiveDraftNumber(draft.diameter_cm)) {
     errors.push("Diametro ostacolo obbligatorio e maggiore di zero.");
   }
 
   if (surface.shape === "triangle") {
-    if (draft.distance_from_base_right_corner_cm <= 0) {
+    if (!isPositiveDraftNumber(draft.distance_from_base_right_corner_cm)) {
       errors.push(
-        "Distanza dall’angolo destro della base obbligatoria e maggiore di zero.",
+        "Distanza del centro dall'angolo destro della base obbligatoria e maggiore di zero.",
       );
     }
 
-    if (draft.height_from_base_cm <= 0) {
-      errors.push("Altezza dalla base (H) obbligatoria e maggiore di zero.");
+    if (!isPositiveDraftNumber(draft.height_from_base_cm)) {
+      errors.push(
+        "Altezza del centro dalla base (H) obbligatoria e maggiore di zero.",
+      );
     }
   } else {
-    if (draft.distance_from_base_cm <= 0) {
-      errors.push("Distanza dalla base obbligatoria e maggiore di zero.");
+    if (!isPositiveDraftNumber(draft.distance_from_base_cm)) {
+      errors.push("Distanza del centro dalla base obbligatoria e maggiore di zero.");
     }
 
-    if (draft.distance_from_left_cm <= 0) {
-      errors.push("Distanza dal lato sinistro obbligatoria e maggiore di zero.");
+    if (!isPositiveDraftNumber(draft.distance_from_left_cm)) {
+      errors.push(
+        "Distanza del centro dal lato sinistro obbligatoria e maggiore di zero.",
+      );
     }
   }
 
   return { errors, baseFieldsValid: errors.length === 0 };
 }
 
+function getDraftNumber(value: NumberDraftValue): number {
+  return typeof value === "number" ? value : 0;
+}
+
+function isPositiveDraftNumber(value: NumberDraftValue): boolean {
+  return typeof value === "number" && value > 0;
+}
+
 function updateDraftNumber(
   setDraft: Dispatch<SetStateAction<ObstacleDraft>>,
   key: keyof ObstacleDraft,
-  value: number,
+  value: string,
 ) {
   setDraft((currentDraft) => ({
     ...currentDraft,
@@ -848,20 +895,26 @@ function updateDraftNumber(
   }));
 }
 
-function readNonNegativeNumber(value: number): number {
-  if (!Number.isFinite(value) || value < 0) {
-    return 0;
+function readNonNegativeNumber(value: string): NumberDraftValue {
+  if (value.trim() === "") {
+    return "";
   }
 
-  return value;
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return "";
+  }
+
+  return numericValue;
 }
 
 function getPositionModeLabel(surface: SurfaceData): string {
   if (surface.shape === "triangle") {
-    return "Distanza dall’angolo destro della base + altezza dalla base (H)";
+    return "Centro da distanza dall'angolo destro della base + altezza dalla base (H)";
   }
 
-  return "Distanza dalla base + distanza dal lato sinistro";
+  return "Centro da distanza dalla base + distanza dal lato sinistro";
 }
 
 function getObstacleTypeLabel(type: ObstacleType): string {
@@ -874,12 +927,43 @@ function getObstacleShapeLabel(shape: ObstacleShape): string {
   return shape === "rect" ? "Rettangolare" : "Circolare";
 }
 
-function getDraftDimensionsSummary(draft: ObstacleDraft): string {
-  if (draft.shape === "rect") {
-    return `${draft.width_cm} x ${draft.height_cm} cm, margine ${draft.safety_margin_cm} cm`;
+function getSurfaceLabel(surface: SurfaceData, index: number): string {
+  const ordinal = index >= 0 ? index + 1 : 1;
+  const baseLabel = `Falda ${ordinal}`;
+  const surfaceName = surface.name.trim();
+
+  if (!surfaceName || surfaceName.toLowerCase() === baseLabel.toLowerCase()) {
+    return baseLabel;
   }
 
-  return `Diametro ${draft.diameter_cm} cm, margine ${draft.safety_margin_cm} cm`;
+  return `${baseLabel} - ${surfaceName}`;
+}
+
+function getSurfaceShapeLabel(surface: SurfaceData): string {
+  switch (surface.shape) {
+    case "rectangular":
+      return "Rettangolare";
+    case "trapezoid":
+      return "Trapezoidale";
+    case "triangle":
+      return "Triangolare";
+    case "guided_quad":
+      return "Quadrilatero guidato";
+    default:
+      return "Falda";
+  }
+}
+
+function getDraftDimensionsSummary(draft: ObstacleDraft): string {
+  if (draft.shape === "rect") {
+    return `${formatDraftNumber(draft.width_cm)} x ${formatDraftNumber(
+      draft.height_cm,
+    )} cm, margine ${formatDraftNumber(draft.safety_margin_cm)} cm`;
+  }
+
+  return `Diametro ${formatDraftNumber(
+    draft.diameter_cm,
+  )} cm, margine ${formatDraftNumber(draft.safety_margin_cm)} cm`;
 }
 
 function getDraftPositionSummary(
@@ -887,10 +971,20 @@ function getDraftPositionSummary(
   surface: SurfaceData,
 ): string {
   if (surface.shape === "triangle") {
-    return `Distanza dall’angolo destro ${draft.distance_from_base_right_corner_cm} cm, altezza H ${draft.height_from_base_cm} cm`;
+    return `Centro: distanza dall'angolo destro ${formatDraftNumber(
+      draft.distance_from_base_right_corner_cm,
+    )} cm, altezza H ${formatDraftNumber(draft.height_from_base_cm)} cm`;
   }
 
-  return `Distanza dalla base ${draft.distance_from_base_cm} cm, distanza dal lato sinistro ${draft.distance_from_left_cm} cm`;
+  return `Centro: distanza dalla base ${formatDraftNumber(
+    draft.distance_from_base_cm,
+  )} cm, distanza dal lato sinistro ${formatDraftNumber(
+    draft.distance_from_left_cm,
+  )} cm`;
+}
+
+function formatDraftNumber(value: NumberDraftValue): string {
+  return value === "" ? "non indicato" : String(value);
 }
 
 function getObstaclePositionSummary(
@@ -901,7 +995,7 @@ function getObstaclePositionSummary(
     const position = obstacle.position;
 
     if ("distance_from_base_right_corner_cm" in position) {
-      return `Angolo destro base ${position.distance_from_base_right_corner_cm} cm, altezza H ${position.height_from_base_cm} cm`;
+      return `Centro: angolo destro base ${position.distance_from_base_right_corner_cm} cm, altezza H ${position.height_from_base_cm} cm`;
     }
 
     return "Posizione triangolare da verificare.";
@@ -910,7 +1004,7 @@ function getObstaclePositionSummary(
   const position = obstacle.position;
 
   if ("distance_from_base_cm" in position) {
-    return `Base ${position.distance_from_base_cm} cm, lato sinistro ${position.distance_from_left_cm} cm`;
+    return `Centro: base ${position.distance_from_base_cm} cm, lato sinistro ${position.distance_from_left_cm} cm`;
   }
 
   return "Posizione da verificare.";

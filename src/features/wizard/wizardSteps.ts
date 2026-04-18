@@ -36,7 +36,8 @@ export const WIZARD_STEPS = [
     id: "pannello",
     numero: 5,
     titolo: "Pannello",
-    descrizione: "Selezione marca e modello dal catalogo recuperato tramite n8n.",
+    descrizione:
+      "Selezione marca e modello dal catalogo Google Sheet tramite n8n.",
   },
   {
     id: "layout_moduli",

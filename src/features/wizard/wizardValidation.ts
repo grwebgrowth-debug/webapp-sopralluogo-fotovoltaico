@@ -206,23 +206,27 @@ function getObstacleErrors(
     } else {
       if (obstacle.position.distance_from_base_right_corner_cm <= 0) {
         errors.push(
-          "distanza dall’angolo destro della base obbligatoria e maggiore di zero.",
+          "distanza del centro dall'angolo destro della base obbligatoria e maggiore di zero.",
         );
       }
 
       if (obstacle.position.height_from_base_cm <= 0) {
-        errors.push("altezza dalla base (H) obbligatoria e maggiore di zero.");
+        errors.push(
+          "altezza del centro dalla base (H) obbligatoria e maggiore di zero.",
+        );
       }
     }
   } else if (!("distance_from_base_cm" in obstacle.position)) {
     errors.push("riferimenti posizione standard mancanti.");
   } else {
     if (obstacle.position.distance_from_base_cm <= 0) {
-      errors.push("distanza dalla base obbligatoria e maggiore di zero.");
+      errors.push("distanza del centro dalla base obbligatoria e maggiore di zero.");
     }
 
     if (obstacle.position.distance_from_left_cm <= 0) {
-      errors.push("distanza dal lato sinistro obbligatoria e maggiore di zero.");
+      errors.push(
+        "distanza del centro dal lato sinistro obbligatoria e maggiore di zero.",
+      );
     }
   }
 
