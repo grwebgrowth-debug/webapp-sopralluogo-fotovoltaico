@@ -14,10 +14,9 @@ export function ClienteStep() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Dati cliente e sopralluogo</h2>
+        <h2 className="text-2xl font-semibold">Cliente</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Inserisci i dati minimi del lavoro. I campi obbligatori sono nome,
-          cognome, indirizzo e data sopralluogo.
+          Compila i dati necessari per identificare il sopralluogo.
         </p>
         {state.active_client_profile && (
           <p className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm text-[var(--muted)]">
@@ -26,14 +25,13 @@ export function ClienteStep() {
               {state.active_client_profile.company_name ||
                 state.active_client_profile.profile_name}
             </strong>
-            . Il tecnico predefinito viene compilato quando il campo è vuoto.
           </p>
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4 md:grid-cols-2">
         <label className={labelClassName}>
-          Nome cliente *
+          Nome *
           <input
             className={inputClassName}
             value={customer.first_name}
@@ -47,7 +45,7 @@ export function ClienteStep() {
         </label>
 
         <label className={labelClassName}>
-          Cognome cliente *
+          Cognome *
           <input
             className={inputClassName}
             value={customer.last_name}
@@ -60,35 +58,8 @@ export function ClienteStep() {
           )}
         </label>
 
-        <label className={labelClassName}>
-          Telefono
-          <input
-            className={inputClassName}
-            inputMode="tel"
-            value={customer.phone}
-            onChange={(event) =>
-              actions.aggiornaDatiCliente({ phone: event.target.value })
-            }
-          />
-        </label>
-
-        <label className={labelClassName}>
-          Email
-          <input
-            className={inputClassName}
-            type="email"
-            value={customer.email}
-            onChange={(event) =>
-              actions.aggiornaDatiCliente({ email: event.target.value })
-            }
-          />
-          {customer.email && !customer.email.includes("@") && (
-            <span className={helpClassName}>Inserisci una email valida.</span>
-          )}
-        </label>
-
         <label className={`${labelClassName} md:col-span-2`}>
-          Indirizzo del sopralluogo *
+          Indirizzo sopralluogo *
           <input
             className={inputClassName}
             value={customer.address}
@@ -99,31 +70,6 @@ export function ClienteStep() {
           {!customer.address.trim() && (
             <span className={helpClassName}>Campo obbligatorio.</span>
           )}
-        </label>
-
-        <label className={labelClassName}>
-          Comune
-          <input
-            className={inputClassName}
-            value={customer.city}
-            onChange={(event) =>
-              actions.aggiornaDatiCliente({ city: event.target.value })
-            }
-          />
-        </label>
-
-        <label className={labelClassName}>
-          Provincia
-          <input
-            className={inputClassName}
-            maxLength={2}
-            value={customer.province}
-            onChange={(event) =>
-              actions.aggiornaDatiCliente({
-                province: event.target.value.toUpperCase(),
-              })
-            }
-          />
         </label>
 
         <label className={labelClassName}>
@@ -140,31 +86,90 @@ export function ClienteStep() {
             <span className={helpClassName}>Campo obbligatorio.</span>
           )}
         </label>
+      </section>
 
-        <label className={labelClassName}>
-          Tecnico incaricato
-          <input
-            className={inputClassName}
-            value={inspection.technician}
-            onChange={(event) =>
-              actions.aggiornaDatiSopralluogo({
-                technician: event.target.value,
-              })
-            }
-          />
-        </label>
+      <details className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+        <summary className="cursor-pointer text-sm font-semibold">
+          Dati opzionali
+        </summary>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className={labelClassName}>
+            Telefono
+            <input
+              className={inputClassName}
+              inputMode="tel"
+              value={customer.phone}
+              onChange={(event) =>
+                actions.aggiornaDatiCliente({ phone: event.target.value })
+              }
+            />
+          </label>
 
-        <label className={`${labelClassName} md:col-span-2`}>
-          Note generali
-          <textarea
-            className={`${inputClassName} min-h-28 resize-y`}
-            value={inspection.notes}
-            onChange={(event) =>
-              actions.aggiornaDatiSopralluogo({ notes: event.target.value })
-            }
-          />
-        </label>
-      </div>
+          <label className={labelClassName}>
+            Email
+            <input
+              className={inputClassName}
+              type="email"
+              value={customer.email}
+              onChange={(event) =>
+                actions.aggiornaDatiCliente({ email: event.target.value })
+              }
+            />
+            {customer.email && !customer.email.includes("@") && (
+              <span className={helpClassName}>Inserisci una email valida.</span>
+            )}
+          </label>
+
+          <label className={labelClassName}>
+            Comune
+            <input
+              className={inputClassName}
+              value={customer.city}
+              onChange={(event) =>
+                actions.aggiornaDatiCliente({ city: event.target.value })
+              }
+            />
+          </label>
+
+          <label className={labelClassName}>
+            Provincia
+            <input
+              className={inputClassName}
+              maxLength={2}
+              value={customer.province}
+              onChange={(event) =>
+                actions.aggiornaDatiCliente({
+                  province: event.target.value.toUpperCase(),
+                })
+              }
+            />
+          </label>
+
+          <label className={labelClassName}>
+            Tecnico incaricato
+            <input
+              className={inputClassName}
+              value={inspection.technician}
+              onChange={(event) =>
+                actions.aggiornaDatiSopralluogo({
+                  technician: event.target.value,
+                })
+              }
+            />
+          </label>
+
+          <label className={`${labelClassName} md:col-span-2`}>
+            Note
+            <textarea
+              className={`${inputClassName} min-h-24 resize-y`}
+              value={inspection.notes}
+              onChange={(event) =>
+                actions.aggiornaDatiSopralluogo({ notes: event.target.value })
+              }
+            />
+          </label>
+        </div>
+      </details>
     </div>
   );
 }

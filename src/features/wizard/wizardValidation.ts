@@ -41,30 +41,12 @@ export function validateWizardStep(
     }
   }
 
-  if (stepId === "tetto" && state.roof.roof_type === null) {
-    errors.push("Seleziona un tipo di tetto.");
-  }
-
-  if (stepId === "falde") {
-    if (state.roof.surfaces.length === 0) {
-      errors.push("Inserisci almeno una falda.");
+  if (stepId === "tetto") {
+    if (state.roof.roof_type === null) {
+      errors.push("Seleziona un tipo di tetto.");
     }
 
-    state.roof.surfaces.forEach((surface, index) => {
-      const prefix = `Falda ${index + 1}`;
-
-      if (!surface.name.trim()) {
-        errors.push(`${prefix}: nome falda obbligatorio.`);
-      }
-
-      if (!surface.orientation.trim()) {
-        errors.push(`${prefix}: orientamento obbligatorio.`);
-      }
-
-      if (!hasValidDimensions(surface)) {
-        errors.push(`${prefix}: quote principali mancanti o pari a zero.`);
-      }
-    });
+    errors.push(...validateSurfaces(state.roof.surfaces));
   }
 
   if (stepId === "ostacoli") {
@@ -129,7 +111,7 @@ export function validateWizardStep(
     );
   }
 
-  if (stepId === "revisione" || stepId === "invio") {
+  if (stepId === "revisione") {
     errors.push(...validateFinalSurvey(state).errors);
   }
 
@@ -144,7 +126,6 @@ export function validateFinalSurvey(state: WizardState): WizardStepValidation {
   const checkedSteps: WizardStepId[] = [
     "cliente",
     "tetto",
-    "falde",
     "ostacoli",
     "pannello",
     "layout_moduli",
@@ -175,6 +156,32 @@ export function validateFinalSurvey(state: WizardState): WizardStepValidation {
 
 function hasValidDimensions(surface: SurfaceData): boolean {
   return getDimensionValues(surface.dimensions).every((value) => value > 0);
+}
+
+function validateSurfaces(surfaces: SurfaceData[]): string[] {
+  const errors: string[] = [];
+
+  if (surfaces.length === 0) {
+    errors.push("Inserisci almeno una falda.");
+  }
+
+  surfaces.forEach((surface, index) => {
+    const prefix = `Falda ${index + 1}`;
+
+    if (!surface.name.trim()) {
+      errors.push(`${prefix}: nome falda obbligatorio.`);
+    }
+
+    if (!surface.orientation.trim()) {
+      errors.push(`${prefix}: orientamento obbligatorio.`);
+    }
+
+    if (!hasValidDimensions(surface)) {
+      errors.push(`${prefix}: misure principali mancanti o pari a zero.`);
+    }
+  });
+
+  return errors;
 }
 
 function getDimensionValues(dimensions: SurfaceDimensions): number[] {

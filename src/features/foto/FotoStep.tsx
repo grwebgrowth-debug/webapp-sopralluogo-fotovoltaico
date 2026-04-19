@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import type { SurveyPhoto, SurveyPhotoType } from "@/types/photos";
 import { useWizard } from "@/features/wizard/WizardProvider";
 
@@ -19,8 +19,15 @@ const labelClassName = "text-sm font-medium";
 
 export function FotoStep() {
   const { actions, state } = useWizard();
+  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(
+    state.photos[0]?.photo_id ?? null,
+  );
   const photosRequired =
     state.active_client_profile?.require_photos_before_submit ?? false;
+  const selectedPhoto =
+    state.photos.find((photo) => photo.photo_id === selectedPhotoId) ??
+    state.photos[0] ??
+    null;
 
   function handleFilesSelected(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -41,6 +48,7 @@ export function FotoStep() {
     }));
 
     actions.aggiungiFotoSopralluogo(nextPhotos);
+    setSelectedPhotoId(nextPhotos[0].photo_id);
     event.target.value = "";
   }
 
@@ -50,142 +58,148 @@ export function FotoStep() {
     }
 
     actions.eliminaFotoSopralluogo(photo.photo_id);
+    setSelectedPhotoId(null);
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Foto sopralluogo</h2>
+        <h2 className="text-2xl font-semibold">Foto</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Aggiungi le immagini raccolte in sopralluogo. Le anteprime restano
-          disponibili nella sessione corrente; dopo un ricaricamento vengono
-          mantenuti i metadati, non il file immagine completo.
+          Aggiungi le immagini del sopralluogo e, se serve, una nota rapida.
         </p>
       </div>
 
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-lg font-semibold">Carica foto</h3>
+            <h3 className="text-lg font-semibold">Foto sopralluogo</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Da mobile puoi usare anche la fotocamera del dispositivo.
+              {state.photos.length} {state.photos.length === 1 ? "foto" : "foto"}
             </p>
           </div>
-          {photosRequired && (
-            <span className="w-fit rounded-lg border border-[var(--accent)] px-3 py-1 text-sm text-[var(--accent)]">
-              Foto obbligatorie per il profilo attivo
-            </span>
-          )}
-        </div>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <label className={labelClassName}>
-            Aggiungi da file o fotocamera
-            <input
-              accept="image/*"
-              capture="environment"
-              className={inputClassName}
-              multiple
-              type="file"
-              onChange={handleFilesSelected}
-            />
-          </label>
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
-            Nessun upload remoto in questa fase. I file veri non vengono salvati
-            in localStorage e non vengono inviati a n8n.
+          <div className="flex flex-wrap items-center gap-3">
+            {photosRequired && (
+              <span className="rounded-lg border border-[var(--accent)] px-3 py-2 text-sm text-[var(--accent)]">
+                Foto obbligatorie
+              </span>
+            )}
+            <label className="cursor-pointer rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950">
+              Aggiungi foto
+              <input
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                multiple
+                type="file"
+                onChange={handleFilesSelected}
+              />
+            </label>
           </div>
         </div>
       </section>
 
-      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
-        <div className="flex items-center justify-between gap-4">
-          <h3 className="text-lg font-semibold">Foto inserite</h3>
-          <span className="rounded-lg border border-[var(--border)] px-3 py-1 text-sm text-[var(--muted)]">
-            {state.photos.length}
-          </span>
-        </div>
+      {state.photos.length === 0 ? (
+        <section className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-5 text-sm text-[var(--muted)]">
+          Nessuna foto inserita.
+        </section>
+      ) : (
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {state.photos.map((photo, index) => {
+              const selected = selectedPhoto?.photo_id === photo.photo_id;
 
-        {state.photos.length === 0 ? (
-          <div className="mt-4 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--muted)]">
-            Nessuna foto inserita.
-          </div>
-        ) : (
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {state.photos.map((photo) => (
-              <article
-                key={photo.photo_id}
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4"
-              >
-                <div className="aspect-video overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-                  {photo.preview_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      alt={`Anteprima ${photo.file_name}`}
-                      className="h-full w-full object-cover"
-                      src={photo.preview_url}
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center px-4 text-center text-sm text-[var(--muted)]">
-                      Anteprima non disponibile dopo il ricaricamento.
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <p className="truncate text-sm font-semibold">
-                      {photo.file_name || "Foto sopralluogo"}
+              return (
+                <button
+                  key={photo.photo_id}
+                  className={`overflow-hidden rounded-lg border text-left transition ${
+                    selected
+                      ? "border-[var(--accent)] bg-[var(--surface-soft)]"
+                      : "border-[var(--border)] bg-white"
+                  }`}
+                  type="button"
+                  onClick={() => setSelectedPhotoId(photo.photo_id)}
+                >
+                  <div className="aspect-square bg-[var(--surface)]">
+                    {photo.preview_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        alt={`Foto ${index + 1}`}
+                        className="h-full w-full object-cover"
+                        src={photo.preview_url}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center px-3 text-center text-xs text-[var(--muted)]">
+                        Anteprima non disponibile
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-semibold">
+                      {getSurveyPhotoTypeLabel(photo.type)}
                     </p>
-                    <p className="mt-1 text-xs text-[var(--muted)]">
-                      {formatFileSize(photo.file_size)}
+                    <p className="mt-1 truncate text-xs text-[var(--muted)]">
+                      Foto {index + 1}
                     </p>
                   </div>
-
-                  <label className={labelClassName}>
-                    Tipo foto
-                    <select
-                      className={inputClassName}
-                      value={photo.type}
-                      onChange={(event) =>
-                        actions.aggiornaFotoSopralluogo(photo.photo_id, {
-                          type: event.target.value as SurveyPhotoType,
-                        })
-                      }
-                    >
-                      {PHOTO_TYPE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className={labelClassName}>
-                    Nota foto
-                    <textarea
-                      className={`${inputClassName} min-h-20 resize-y`}
-                      value={photo.note}
-                      onChange={(event) =>
-                        actions.aggiornaFotoSopralluogo(photo.photo_id, {
-                          note: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-
-                  <button
-                    className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--danger)]"
-                    type="button"
-                    onClick={() => deletePhoto(photo)}
-                  >
-                    Elimina foto
-                  </button>
-                </div>
-              </article>
-            ))}
+                </button>
+              );
+            })}
           </div>
-        )}
-      </section>
+
+          {selectedPhoto && (
+            <aside className="rounded-lg border border-[var(--border)] bg-white p-5 lg:sticky lg:top-6 lg:self-start">
+              <h3 className="text-lg font-semibold">Dettagli foto</h3>
+              <p className="mt-1 truncate text-xs text-[var(--muted)]">
+                {selectedPhoto.file_name || "Foto sopralluogo"} -{" "}
+                {formatFileSize(selectedPhoto.file_size)}
+              </p>
+
+              <div className="mt-4 space-y-4">
+                <label className={labelClassName}>
+                  Tipo
+                  <select
+                    className={inputClassName}
+                    value={selectedPhoto.type}
+                    onChange={(event) =>
+                      actions.aggiornaFotoSopralluogo(selectedPhoto.photo_id, {
+                        type: event.target.value as SurveyPhotoType,
+                      })
+                    }
+                  >
+                    {PHOTO_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className={labelClassName}>
+                  Nota
+                  <textarea
+                    className={`${inputClassName} min-h-24 resize-y`}
+                    value={selectedPhoto.note}
+                    onChange={(event) =>
+                      actions.aggiornaFotoSopralluogo(selectedPhoto.photo_id, {
+                        note: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+
+                <button
+                  className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--danger)]"
+                  type="button"
+                  onClick={() => deletePhoto(selectedPhoto)}
+                >
+                  Elimina foto
+                </button>
+              </div>
+            </aside>
+          )}
+        </section>
+      )}
     </div>
   );
 }

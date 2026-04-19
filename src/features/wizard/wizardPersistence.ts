@@ -95,7 +95,9 @@ export function normalizeWizardState(value: unknown): WizardState | null {
     return null;
   }
 
-  if (!isWizardStepId(value.currentStepId)) {
+  const currentStepId = normalizeWizardStepId(value.currentStepId);
+
+  if (!currentStepId) {
     return null;
   }
 
@@ -128,13 +130,15 @@ export function normalizeWizardState(value: unknown): WizardState | null {
     value.active_client_profile,
   );
   const completedStepIds = Array.isArray(value.completedStepIds)
-    ? value.completedStepIds.filter(isWizardStepId)
+    ? Array.from(
+        new Set(value.completedStepIds.map(normalizeWizardStepId).filter(isWizardStepId)),
+      )
     : [];
 
   return {
     ...baseState,
     survey_id: readString(value.survey_id, baseState.survey_id),
-    currentStepId: value.currentStepId,
+    currentStepId,
     completedStepIds,
     customer,
     inspection,
@@ -479,6 +483,24 @@ function isCircleObstacleDimensions(
 
 function isWizardStepId(value: unknown): value is WizardState["currentStepId"] {
   return isString(value) && WIZARD_STEP_IDS.includes(value as never);
+}
+
+function normalizeWizardStepId(
+  value: unknown,
+): WizardState["currentStepId"] | null {
+  if (isWizardStepId(value)) {
+    return value;
+  }
+
+  if (value === "falde") {
+    return "tetto";
+  }
+
+  if (value === "invio") {
+    return "revisione";
+  }
+
+  return null;
 }
 
 function isLayoutCalculationMode(value: unknown): value is LayoutCalculationMode {

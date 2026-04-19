@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { WizardStepId } from "@/types/domain";
+import type { ObstacleType, RoofType, SurfaceShape, WizardStepId } from "@/types/domain";
 import { getSurveyPhotoTypeLabel } from "@/features/foto/FotoStep";
 import { inviaSopralluogoAN8n } from "@/lib/api/n8n";
 import { formattaKilowattPicco } from "@/lib/formatters/units";
@@ -29,7 +29,7 @@ type SubmitState =
     };
 
 export function RevisioneStep() {
-  const { actions, state } = useWizard();
+  const { actions, state, summary } = useWizard();
   const finalValidation = useMemo(() => validateFinalSurvey(state), [state]);
   const payloadResult = useMemo(() => costruisciPayloadN8nV1(state), [state]);
   const [submitState, setSubmitState] = useState<SubmitState>({
@@ -41,14 +41,14 @@ export function RevisioneStep() {
     if (!finalValidation.valid || !payloadResult.ok) {
       setSubmitState({
         status: "error",
-        message: "Completa i dati obbligatori prima dell’invio.",
+        message: "Completa i dati obbligatori prima dell'invio.",
       });
       return;
     }
 
     setSubmitState({
       status: "loading",
-      message: "Preparazione invio a n8n...",
+      message: "Invio in corso...",
     });
 
     const result = await inviaSopralluogoAN8n(payloadResult.payload);
@@ -70,319 +70,184 @@ export function RevisioneStep() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Revisione tecnica</h2>
+        <h2 className="text-2xl font-semibold">Revisione e invio</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Controlla tutti i dati prima della conferma finale. Ogni blocco può
-          essere modificato senza perdere la bozza.
+          Controlla la sintesi e apri solo le sezioni da verificare.
         </p>
       </div>
 
+      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+        <dl className="grid grid-cols-2 gap-3 text-sm lg:grid-cols-6">
+          <SummaryTile
+            label="Cliente"
+            value={summary.customer_full_name || "Da completare"}
+          />
+          <SummaryTile label="Falde" value={String(summary.surfaces_count)} />
+          <SummaryTile label="Ostacoli" value={String(summary.obstacles_count)} />
+          <SummaryTile label="Moduli" value={String(summary.layout_modules_count)} />
+          <SummaryTile label="Foto" value={String(summary.photos_count)} />
+          <SummaryTile
+            label="Invio"
+            value={finalValidation.valid && payloadResult.ok ? "Pronto" : "Da completare"}
+          />
+        </dl>
+      </section>
+
       {!finalValidation.valid && (
-        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-5">
-          <h3 className="text-lg font-semibold">Dati da completare</h3>
+        <details className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-5" open>
+          <summary className="cursor-pointer text-lg font-semibold">
+            Dati da completare
+          </summary>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
             {finalValidation.errors.map((error) => (
               <li key={error}>{error}</li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
 
       <ReviewSection
-        title="Profilo cliente"
-        onEdit={() => {
-          window.location.href = "/impostazioni";
-        }}
-      >
-        {state.active_client_profile ? (
-          <DescriptionList
-            items={[
-              [
-                "Azienda",
-                state.active_client_profile.company_name || "Non indicata",
-              ],
-              ["Profilo", state.active_client_profile.profile_name],
-              ["Codice cliente", state.active_client_profile.client_code],
-              [
-                "Tecnico predefinito",
-                state.active_client_profile.default_technician ||
-                  "Non indicato",
-              ],
-              [
-                "Endpoint catalogo pannelli",
-                state.active_client_profile.panel_catalog_endpoint
-                  ? "Configurato"
-                  : "Non configurato",
-              ],
-              [
-                "Endpoint invio sopralluogo",
-                state.active_client_profile.survey_submit_endpoint
-                  ? "Configurato"
-                  : "Non configurato",
-              ],
-            ]}
-          />
-        ) : (
-          <p className="text-sm text-[var(--muted)]">
-            Nessun profilo cliente attivo.
-          </p>
-        )}
-      </ReviewSection>
-
-      <ReviewSection
-        title="Dati cliente"
+        title="Cliente"
         onEdit={() => actions.cambiaStep("cliente")}
       >
         <DescriptionList
           items={[
-            ["Nome cliente", state.customer.first_name || "Non indicato"],
-            ["Cognome cliente", state.customer.last_name || "Non indicato"],
+            ["Nome", state.customer.first_name || "Non indicato"],
+            ["Cognome", state.customer.last_name || "Non indicato"],
+            ["Indirizzo", state.customer.address || "Non indicato"],
+            ["Data", state.inspection.date || "Non indicata"],
             ["Telefono", state.customer.phone || "Non indicato"],
             ["Email", state.customer.email || "Non indicata"],
-            [
-              "Indirizzo del sopralluogo",
-              state.customer.address || "Non indicato",
-            ],
-            ["Comune", state.customer.city || "Non indicato"],
-            ["Provincia", state.customer.province || "Non indicata"],
-            ["Data sopralluogo", state.inspection.date || "Non indicata"],
-            [
-              "Tecnico incaricato",
-              state.inspection.technician || "Non indicato",
-            ],
-            ["Note generali", state.inspection.notes || "Nessuna nota"],
           ]}
         />
       </ReviewSection>
 
       <ReviewSection
-        title="Tipo di tetto"
+        title="Tetto e falde"
         onEdit={() => actions.cambiaStep("tetto")}
       >
         <DescriptionList
           items={[
-            ["Tipo di tetto", state.roof.roof_type ?? "Non selezionato"],
-            ["Numero falde", String(state.roof.surfaces.length)],
+            ["Tipo tetto", getRoofTypeLabel(state.roof.roof_type)],
+            ["Falde", String(state.roof.surfaces.length)],
           ]}
         />
-      </ReviewSection>
-
-      <ReviewSection title="Falde" onEdit={() => actions.cambiaStep("falde")}>
-        {state.roof.surfaces.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">Nessuna falda inserita.</p>
-        ) : (
-          <div className="space-y-4">
-            {state.roof.surfaces.map((surface, index) => (
-              <div
-                key={surface.surface_id}
-                className="rounded-lg border border-[var(--border)] p-4 text-sm"
-              >
-                <p className="font-semibold">
-                  {index + 1}. {surface.name}
-                </p>
-                <p className="mt-1 text-[var(--muted)]">
-                  Forma: {surface.shape}, orientamento:{" "}
-                  {surface.orientation || "non indicato"}, inclinazione:{" "}
-                  {surface.tilt_deg}°.
-                </p>
-                <p className="mt-1 text-[var(--muted)]">
-                  Quota minima dal bordo: {surface.edge_clearance_cm} cm.
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+        <CompactList>
+          {state.roof.surfaces.map((surface, index) => (
+            <li key={surface.surface_id}>
+              <strong>Falda {index + 1}</strong>: {getSurfaceShapeLabel(surface.shape)},{" "}
+              {surface.orientation || "orientamento non indicato"}
+            </li>
+          ))}
+        </CompactList>
       </ReviewSection>
 
       <ReviewSection
         title="Ostacoli"
         onEdit={() => actions.cambiaStep("ostacoli")}
       >
-        {state.roof.surfaces.every((surface) => surface.obstacles.length === 0) ? (
-          <p className="text-sm text-[var(--muted)]">
-            Nessun ostacolo inserito.
-          </p>
+        {summary.obstacles_count === 0 ? (
+          <p className="text-sm text-[var(--muted)]">Nessun ostacolo inserito.</p>
         ) : (
-          <div className="space-y-4">
-            {state.roof.surfaces.map((surface) =>
-              surface.obstacles.map((obstacle) => (
-                <div
-                  key={`${surface.surface_id}-${obstacle.obstacle_id}`}
-                  className="rounded-lg border border-[var(--border)] p-4 text-sm"
-                >
-                  <p className="font-semibold">
-                    {getObstacleDisplayName(obstacle.obstacle_id, obstacle.type)}
-                  </p>
-                  <p className="mt-1 text-[var(--muted)]">
-                    Falda: {surface.name}. Tipo: {obstacle.type}. Forma:{" "}
-                    {obstacle.shape}.
-                  </p>
-                  <p className="mt-1 text-[var(--muted)]">
-                    Margine di sicurezza: {obstacle.safety_margin_cm} cm.
-                  </p>
-                </div>
+          <CompactList>
+            {state.roof.surfaces.flatMap((surface) =>
+              surface.obstacles.map((obstacle, index) => (
+                <li key={`${surface.surface_id}-${obstacle.obstacle_id}-${index}`}>
+                  <strong>{obstacle.obstacle_id || getObstacleTypeLabel(obstacle.type)}</strong>:{" "}
+                  {getObstacleTypeLabel(obstacle.type)} su {surface.name}
+                </li>
               )),
             )}
-          </div>
+          </CompactList>
         )}
       </ReviewSection>
 
       <ReviewSection
-        title="Pannello selezionato"
+        title="Pannello e obiettivo"
         onEdit={() => actions.cambiaStep("pannello")}
       >
         <DescriptionList
           items={[
+            ["Marca", state.panel_selection.brand || "Non selezionata"],
+            ["Modello", state.panel_selection.model || "Non selezionato"],
             [
-              "Marca pannello",
-              state.panel_selection.brand || "Non selezionata",
+              "Potenza modulo",
+              state.panel_technical_data.power_w > 0
+                ? `${state.panel_technical_data.power_w} W`
+                : "Non indicata",
             ],
+            ["Obiettivo", getLayoutModeLabel(state.layout_config.mode)],
             [
-              "Modello pannello",
-              state.panel_selection.model || "Non selezionato",
+              "Target",
+              state.layout_config.target_power_w
+                ? formattaKilowattPicco(state.layout_config.target_power_w)
+                : "Massimo moduli",
             ],
           ]}
         />
       </ReviewSection>
 
       <ReviewSection
-        title="Layout moduli preliminare"
+        title="Layout preliminare"
         onEdit={() => actions.cambiaStep("layout_moduli")}
       >
         {state.preliminary_layout ? (
-          <div className="space-y-4">
-            <DescriptionList
-              items={[
-                [
-                  "Modalità layout",
-                  getLayoutModeLabel(state.preliminary_layout.layout_mode),
-                ],
-                [
-                  "Target impianto",
-                  state.preliminary_layout.target_power_w !== null
-                    ? formattaKilowattPicco(
-                        state.preliminary_layout.target_power_w,
-                      )
-                    : "Non impostato",
-                ],
-                [
-                  "Moduli target",
-                  state.preliminary_layout.target_module_count !== null
-                    ? String(state.preliminary_layout.target_module_count)
-                    : "Non impostati",
-                ],
-                [
-                  "Moduli effettivi",
-                  String(state.preliminary_layout.total_modules),
-                ],
-                [
-                  "Potenza effettiva",
-                  formattaKilowattPicco(state.preliminary_layout.total_power_w),
-                ],
-                [
-                  "Falde utilizzate",
-                  String(
-                    state.preliminary_layout.surfaces.filter(
-                      (surfaceLayout) => surfaceLayout.module_count > 0,
-                    ).length,
-                  ),
-                ],
-                [
-                  "Stato target",
-                  state.preliminary_layout.target_reached === null
-                    ? "Non applicabile"
-                    : state.preliminary_layout.target_reached
-                      ? "Raggiunto"
-                      : "Non raggiunto",
-                ],
-              ]}
-            />
-            {state.preliminary_layout.messages.length > 0 && (
-              <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
-                {state.preliminary_layout.messages.map((message) => (
-                  <li key={message}>{message}</li>
-                ))}
-              </ul>
-            )}
-            <div className="space-y-3">
-              {state.preliminary_layout.surfaces.map((surfaceLayout) => (
-                <div
-                  key={surfaceLayout.surface_id}
-                  className="rounded-lg border border-[var(--border)] p-4 text-sm"
-                >
-                  <p className="font-semibold">{surfaceLayout.surface_name}</p>
-                  <p className="mt-1 text-[var(--muted)]">
-                    Orientamento: {surfaceLayout.selected_orientation}. Moduli:{" "}
-                    {surfaceLayout.module_count}. Potenza:{" "}
-                    {formattaKilowattPicco(surfaceLayout.total_power_w)}.
-                  </p>
-                  {surfaceLayout.messages.length > 0 && (
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-[var(--muted)]">
-                      {surfaceLayout.messages.map((message) => (
-                        <li key={message}>{message}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <DescriptionList
+            items={[
+              ["Moduli", String(state.preliminary_layout.total_modules)],
+              [
+                "Potenza",
+                formattaKilowattPicco(state.preliminary_layout.total_power_w),
+              ],
+              [
+                "Falde usate",
+                String(
+                  state.preliminary_layout.surfaces.filter(
+                    (surfaceLayout) => surfaceLayout.module_count > 0,
+                  ).length,
+                ),
+              ],
+            ]}
+          />
         ) : (
-          <p className="text-sm text-[var(--muted)]">
-            Layout moduli non ancora calcolato.
-          </p>
+          <p className="text-sm text-[var(--muted)]">Layout non ancora calcolato.</p>
         )}
       </ReviewSection>
 
-      <ReviewSection title="Foto sopralluogo" onEdit={() => actions.cambiaStep("foto")}>
-        <DescriptionList
-          items={[
-            ["Foto caricate", String(state.photos.length)],
-            [
-              "Obbligo foto",
-              state.active_client_profile?.require_photos_before_submit
-                ? "Attivo per il profilo cliente"
-                : "Non attivo",
-            ],
-          ]}
-        />
+      <ReviewSection title="Foto" onEdit={() => actions.cambiaStep("foto")}>
         {state.photos.length === 0 ? (
-          <p className="mt-4 text-sm text-[var(--muted)]">
-            Nessuna foto inserita.
-          </p>
+          <p className="text-sm text-[var(--muted)]">Nessuna foto inserita.</p>
         ) : (
-          <div className="mt-4 space-y-3">
-            {state.photos.map((photo) => (
-              <div
-                key={photo.photo_id}
-                className="rounded-lg border border-[var(--border)] p-4 text-sm"
-              >
-                <p className="font-semibold">
-                  {getSurveyPhotoTypeLabel(photo.type)}
-                </p>
-                <p className="mt-1 text-[var(--muted)]">
-                  File: {photo.file_name || "Nome file non disponibile"}.
-                </p>
-                <p className="mt-1 text-[var(--muted)]">
-                  Nota: {photo.note || "Nessuna nota"}.
-                </p>
-              </div>
+          <CompactList>
+            {state.photos.map((photo, index) => (
+              <li key={photo.photo_id}>
+                <strong>Foto {index + 1}</strong>: {getSurveyPhotoTypeLabel(photo.type)}
+                {photo.note ? ` - ${photo.note}` : ""}
+              </li>
             ))}
-          </div>
+          </CompactList>
         )}
       </ReviewSection>
 
       <section className="rounded-lg border border-[var(--border)] bg-white p-5">
-        <h3 className="text-lg font-semibold">Stato invio</h3>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          {payloadResult.ok
-            ? "La struttura del payload finale è costruibile."
-            : "Il payload finale non è ancora costruibile."}
-        </p>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          L’integrazione reale con n8n non è configurata in questa base: il
-          pulsante prepara il flusso e segnala chiaramente lo stato.
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Invio finale</h3>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {finalValidation.valid && payloadResult.ok
+                ? "I dati sono pronti per l'invio."
+                : "Completa i dati richiesti prima di inviare."}
+            </p>
+          </div>
+          <button
+            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!finalValidation.valid || submitState.status === "loading"}
+            type="button"
+            onClick={handleSubmit}
+          >
+            {submitState.status === "loading" ? "Invio..." : "Invia sopralluogo"}
+          </button>
+        </div>
 
         {submitState.message && (
           <div
@@ -397,18 +262,21 @@ export function RevisioneStep() {
             {submitState.message}
           </div>
         )}
-
-        <button
-          className="mt-5 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!finalValidation.valid || submitState.status === "loading"}
-          type="button"
-          onClick={handleSubmit}
-        >
-          {submitState.status === "loading"
-            ? "Invio in corso..."
-            : "Conferma dati e invia"}
-        </button>
       </section>
+    </div>
+  );
+}
+
+type SummaryTileProps = {
+  label: string;
+  value: string;
+};
+
+function SummaryTile({ label, value }: SummaryTileProps) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+      <dt className="text-xs text-[var(--muted)]">{label}</dt>
+      <dd className="mt-1 truncate font-semibold">{value}</dd>
     </div>
   );
 }
@@ -421,19 +289,24 @@ type ReviewSectionProps = {
 
 function ReviewSection({ children, onEdit, title }: ReviewSectionProps) {
   return (
-    <section className="rounded-lg border border-[var(--border)] bg-white p-5">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <button
-          className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
-          type="button"
-          onClick={onEdit}
-        >
-          Modifica
-        </button>
-      </div>
-      {children}
-    </section>
+    <details className="rounded-lg border border-[var(--border)] bg-white p-5">
+      <summary className="cursor-pointer list-none">
+        <span className="flex items-center justify-between gap-4">
+          <span className="text-lg font-semibold">{title}</span>
+          <button
+            className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              onEdit();
+            }}
+          >
+            Modifica
+          </button>
+        </span>
+      </summary>
+      <div className="mt-4">{children}</div>
+    </details>
   );
 }
 
@@ -454,16 +327,58 @@ function DescriptionList({ items }: DescriptionListProps) {
   );
 }
 
-function getObstacleDisplayName(obstacleId: string, obstacleType: string): string {
-  if (!obstacleId.startsWith("ostacolo_")) {
-    return obstacleId;
-  }
+type CompactListProps = {
+  children: ReactNode;
+};
 
-  return obstacleType;
+function CompactList({ children }: CompactListProps) {
+  return (
+    <ul className="mt-4 space-y-2 text-sm text-[var(--muted)]">{children}</ul>
+  );
 }
 
 function getLayoutModeLabel(mode: "max_modules" | "target_power"): string {
-  return mode === "target_power"
-    ? "Potenza target impianto"
-    : "Massimo numero di moduli possibile";
+  return mode === "target_power" ? "Target impianto" : "Massimo moduli";
+}
+
+function getRoofTypeLabel(type: RoofType | null): string {
+  if (!type) {
+    return "Non selezionato";
+  }
+
+  const labels: Record<RoofType, string> = {
+    falda_unica: "Falda unica",
+    due_falde: "Due falde",
+    due_falde_asimmetriche: "Due falde asimmetriche",
+    quattro_falde_padiglione: "Quattro falde",
+    tetto_a_l: "Tetto a L",
+    shed: "Shed",
+    piu_falde_personalizzato: "Personalizzato",
+  };
+
+  return labels[type];
+}
+
+function getSurfaceShapeLabel(shape: SurfaceShape): string {
+  const labels: Record<SurfaceShape, string> = {
+    rectangular: "rettangolare",
+    trapezoid: "trapezio",
+    triangle: "triangolo",
+    guided_quad: "irregolare",
+  };
+
+  return labels[shape];
+}
+
+function getObstacleTypeLabel(type: ObstacleType): string {
+  const labels: Record<ObstacleType, string> = {
+    camino: "Camino",
+    lucernario: "Lucernario",
+    sfiato: "Sfiato",
+    antenna_palo: "Antenna / palo",
+    area_non_utilizzabile: "Area non utilizzabile",
+    altro_ostacolo: "Altro ostacolo",
+  };
+
+  return labels[type];
 }

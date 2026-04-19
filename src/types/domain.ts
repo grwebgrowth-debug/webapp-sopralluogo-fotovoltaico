@@ -1,13 +1,11 @@
 export const WIZARD_STEP_IDS = [
   "cliente",
   "tetto",
-  "falde",
   "ostacoli",
   "pannello",
   "layout_moduli",
   "foto",
   "revisione",
-  "invio",
 ] as const;
 
 export type WizardStepId = (typeof WIZARD_STEP_IDS)[number];

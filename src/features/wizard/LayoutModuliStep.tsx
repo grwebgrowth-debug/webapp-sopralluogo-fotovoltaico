@@ -1,11 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
 import { formattaKilowattPicco, formattaWatt } from "@/lib/formatters/units";
-import {
-  calcolaCapacitaFaldeLayout,
-  calcolaLayoutModuliPreliminare,
-} from "@/lib/geometry/moduleLayout";
+import { calcolaLayoutModuliPreliminare } from "@/lib/geometry/moduleLayout";
 import { creaOstacoloGeometrico } from "@/lib/geometry/obstacles";
 import {
   creaPoligonoFalda,
@@ -28,25 +24,7 @@ export function LayoutModuliStep() {
   const canCalculate =
     panelErrors.length === 0 && state.roof.surfaces.length > 0;
   const layout = state.preliminary_layout;
-  const capacityLayouts = useMemo(
-    () =>
-      canCalculate
-        ? calcolaCapacitaFaldeLayout(
-            state.roof.surfaces,
-            state.panel_technical_data,
-          )
-        : [],
-    [canCalculate, state.panel_technical_data, state.roof.surfaces],
-  );
-  const totalAvailableModules = capacityLayouts.reduce(
-    (total, surfaceLayout) => total + surfaceLayout.module_count,
-    0,
-  );
-  const targetOptions = buildTargetOptions(
-    state.panel_technical_data.power_w,
-    totalAvailableModules,
-    state.layout_config.target_module_count,
-  );
+  const targetOptions: Array<{ label: string; moduleCount: number }> = [];
 
   function handleCalculate() {
     if (!canCalculate) {
@@ -61,48 +39,63 @@ export function LayoutModuliStep() {
     actions.impostaLayoutPreliminare(nextLayout);
   }
 
-  function handleModeChange(mode: "max_modules" | "target_power") {
-    actions.configuraTargetLayout({
-      mode,
-      target_module_count:
-        mode === "target_power"
-          ? state.layout_config.target_module_count
-          : null,
-      target_power_w:
-        mode === "target_power"
-          ? state.layout_config.target_power_w
-          : null,
-    });
+  function handleModeChange(_mode?: "max_modules" | "target_power") {
+    return;
   }
 
-  function handleTargetChange(value: string) {
-    const targetModuleCount = Number(value);
-
-    actions.configuraTargetLayout({
-      mode: "target_power",
-      target_module_count:
-        Number.isFinite(targetModuleCount) && targetModuleCount > 0
-          ? targetModuleCount
-          : null,
-      target_power_w:
-        Number.isFinite(targetModuleCount) &&
-        targetModuleCount > 0 &&
-        state.panel_technical_data.power_w > 0
-          ? targetModuleCount * state.panel_technical_data.power_w
-          : null,
-    });
+  function handleTargetChange(_value?: string) {
+    return;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Layout moduli preliminare</h2>
+        <h2 className="text-2xl font-semibold">Layout preliminare</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Calcolo indicativo a griglia sulle falde compilate. Il sistema prova
+          Calcola una stima dei moduli inseribili sulle falde.
+        </p>
+        <p className="hidden">
+          Calcola una stima dei moduli inseribili sulle falde.
           orientamento verticale e orizzontale e sceglie la soluzione con più
           moduli. Non è ancora una progettazione esecutiva.
         </p>
       </div>
+
+      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+        <h3 className="text-lg font-semibold">Sintesi layout</h3>
+        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryItem
+            label="Modalita"
+            value={getLayoutModeLabel(state.layout_config.mode)}
+          />
+          <SummaryItem
+            label="Target"
+            value={
+              state.layout_config.target_power_w
+                ? formattaKilowattPicco(state.layout_config.target_power_w)
+                : "Massimo moduli"
+            }
+          />
+          <SummaryItem
+            label="Moduli inseriti"
+            value={layout ? String(layout.total_modules) : "Da calcolare"}
+          />
+          <SummaryItem
+            label="Potenza totale"
+            value={
+              layout ? formattaKilowattPicco(layout.total_power_w) : "Da calcolare"
+            }
+          />
+        </dl>
+        <button
+          className="mt-5 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!canCalculate}
+          type="button"
+          onClick={handleCalculate}
+        >
+          Calcola layout
+        </button>
+      </section>
 
       {panelErrors.length > 0 && (
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-5">
@@ -132,7 +125,7 @@ export function LayoutModuliStep() {
       )}
 
       <section className="rounded-lg border border-[var(--border)] bg-white p-5">
-        <h3 className="text-lg font-semibold">Dati usati per il calcolo</h3>
+        <h3 className="text-lg font-semibold">Dati usati</h3>
         <dl className="mt-4 grid gap-3 text-sm md:grid-cols-4">
           <SummaryItem
             label="Larghezza pannello"
@@ -157,7 +150,7 @@ export function LayoutModuliStep() {
             }
           />
         </dl>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className="hidden">
           <label className={labelClassName}>
             Modalità layout
             <select
@@ -200,14 +193,14 @@ export function LayoutModuliStep() {
           )}
         </div>
         {state.layout_config.mode === "target_power" && (
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+          <p className="hidden">
             Il target è espresso come numero intero di moduli: la potenza viene
             calcolata usando la potenza del pannello selezionato. Capacità reale
-            stimata sulle falde compilate: {totalAvailableModules} moduli.
+            selezionato nello step Pannello.
           </p>
         )}
         <button
-          className="mt-5 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="hidden"
           disabled={!canCalculate}
           type="button"
           onClick={handleCalculate}
@@ -219,10 +212,15 @@ export function LayoutModuliStep() {
       {layout ? (
         <LayoutResultView layout={layout} surfaces={state.roof.surfaces} />
       ) : (
+        <>
         <section className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-5 text-sm leading-6 text-[var(--muted)]">
+          Nessun layout calcolato.
+        </section>
+        <section className="hidden">
           Nessun layout calcolato. Completa i dati pannello e premi “Calcola
           layout preliminare”.
         </section>
+        </>
       )}
     </div>
   );

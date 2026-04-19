@@ -1,8 +1,9 @@
 "use client";
 
 import type { RoofType } from "@/types/domain";
-import { useWizard } from "@/features/wizard/WizardProvider";
+import { FaldeStep } from "@/features/falde/FaldeStep";
 import { ensureSurfaceCount } from "@/features/falde/surfaceFactory";
+import { useWizard } from "@/features/wizard/WizardProvider";
 
 const ROOF_TYPE_OPTIONS: Array<{
   value: RoofType;
@@ -13,43 +14,43 @@ const ROOF_TYPE_OPTIONS: Array<{
   {
     value: "falda_unica",
     label: "Falda unica",
-    description: "Una sola superficie di posa principale.",
+    description: "Una superficie principale.",
     defaultSurfaceCount: 1,
   },
   {
     value: "due_falde",
     label: "Due falde",
-    description: "Due falde principali con dimensioni simili.",
+    description: "Due superfici principali.",
     defaultSurfaceCount: 2,
   },
   {
     value: "due_falde_asimmetriche",
     label: "Due falde asimmetriche",
-    description: "Due falde principali con geometrie diverse.",
+    description: "Due superfici con misure diverse.",
     defaultSurfaceCount: 2,
   },
   {
     value: "quattro_falde_padiglione",
-    label: "Quattro falde / padiglione",
-    description: "Tetto composto da quattro falde.",
+    label: "Quattro falde",
+    description: "Copertura a padiglione.",
     defaultSurfaceCount: 4,
   },
   {
     value: "tetto_a_l",
     label: "Tetto a L",
-    description: "Configurazione pratica per coperture con impronta a L.",
+    description: "Copertura con impronta a L.",
     defaultSurfaceCount: 4,
   },
   {
     value: "shed",
     label: "Shed",
-    description: "Sequenza di falde ripetute, tipica di coperture produttive.",
+    description: "Falde ripetute.",
     defaultSurfaceCount: 3,
   },
   {
     value: "piu_falde_personalizzato",
-    label: "Più falde personalizzato",
-    description: "Numero falde definito dal tecnico.",
+    label: "Personalizzato",
+    description: "Numero falde libero.",
     defaultSurfaceCount: 3,
   },
 ];
@@ -89,78 +90,80 @@ export function TettoStep() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Tipo di tetto</h2>
+        <h2 className="text-2xl font-semibold">Tetto e falde</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Scegli la configurazione più vicina al caso reale. Le falde preparate
-          qui saranno compilate nello step successivo.
+          Scegli il tipo di tetto e compila le falde principali.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {ROOF_TYPE_OPTIONS.map((option) => {
-          const selected = selectedRoofType === option.value;
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+        <p className="text-sm font-semibold">Tipo di tetto</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {ROOF_TYPE_OPTIONS.map((option) => {
+            const selected = selectedRoofType === option.value;
 
-          return (
-            <button
-              key={option.value}
-              className={`rounded-lg border p-4 text-left transition ${
-                selected
-                  ? "border-[var(--accent)] bg-[var(--surface-soft)]"
-                  : "border-[var(--border)] bg-white hover:border-[var(--accent)]"
-              }`}
-              type="button"
-              onClick={() => handleSelectRoofType(option)}
-            >
-              <span className="block text-base font-semibold">
-                {option.label}
-              </span>
-              <span className="mt-2 block text-sm leading-6 text-[var(--muted)]">
-                {option.description}
-              </span>
-              <span className="mt-3 block text-xs text-[var(--muted)]">
-                Falde iniziali: {option.defaultSurfaceCount}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={option.value}
+                className={`rounded-lg border p-4 text-left transition ${
+                  selected
+                    ? "border-[var(--accent)] bg-[color:rgba(20,184,166,0.12)]"
+                    : "border-[var(--border)] bg-white hover:border-[var(--accent)]"
+                }`}
+                type="button"
+                onClick={() => handleSelectRoofType(option)}
+              >
+                <span className="block text-base font-semibold">
+                  {option.label}
+                </span>
+                <span className="mt-1 block text-sm text-[var(--muted)]">
+                  {option.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-      {selectedRoofType === "piu_falde_personalizzato" && (
-        <label className="block max-w-xs text-sm font-medium">
-          Numero falde
-          <input
-            className="mt-2 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
-            min={1}
-            max={12}
-            placeholder="Esempio: 3"
-            type="number"
-            value={customSurfaceCount ? String(customSurfaceCount) : ""}
-            onChange={(event) =>
-              actions.impostaNumeroFaldePersonalizzato(
-                readSurfaceCount(event.target.value),
-              )
-            }
-          />
-        </label>
+        {selectedRoofType === "piu_falde_personalizzato" && (
+          <label className="mt-4 block max-w-xs text-sm font-medium">
+            Numero falde
+            <input
+              className="mt-2 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+              min={1}
+              max={12}
+              placeholder="Esempio: 3"
+              type="number"
+              value={customSurfaceCount ? String(customSurfaceCount) : ""}
+              onChange={(event) =>
+                actions.impostaNumeroFaldePersonalizzato(
+                  readSurfaceCount(event.target.value),
+                )
+              }
+            />
+          </label>
+        )}
+
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-[var(--muted)]">
+            Falde presenti:{" "}
+            <strong className="text-[var(--foreground)]">
+              {state.roof.surfaces.length}
+            </strong>
+          </p>
+          <button
+            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!selectedRoofType || !plannedSurfaceCount}
+            type="button"
+            onClick={handlePrepareSurfaces}
+          >
+            Aggiorna falde
+          </button>
+        </div>
+      </section>
+
+      {(selectedRoofType || state.roof.surfaces.length > 0) && (
+        <FaldeStep embedded />
       )}
-
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm">
-        <p className="font-semibold">
-          Falde attualmente presenti: {state.roof.surfaces.length}
-        </p>
-        <p className="mt-1 text-[var(--muted)]">
-          Puoi preparare o riallineare l'elenco delle falde senza introdurre
-          ancora logica geometrica automatica.
-        </p>
-        <button
-          className="mt-4 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!selectedRoofType || !plannedSurfaceCount}
-          type="button"
-          onClick={handlePrepareSurfaces}
-        >
-          Prepara falde
-        </button>
-      </div>
     </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import { ClienteStep } from "@/features/cliente/ClienteStep";
-import { FaldeStep } from "@/features/falde/FaldeStep";
 import { FotoStep } from "@/features/foto/FotoStep";
 import { OstacoliStep } from "@/features/ostacoli/OstacoliStep";
 import { PannelloStep } from "@/features/pannelli/PannelloStep";
@@ -13,6 +12,7 @@ import { LayoutModuliStep } from "./LayoutModuliStep";
 import { WizardProvider, useWizard } from "./WizardProvider";
 import { validateWizardStep } from "./wizardValidation";
 import { WIZARD_STEPS } from "./wizardSteps";
+import type { WizardSummary } from "./wizardState";
 
 export function WizardShell() {
   return (
@@ -39,15 +39,17 @@ function WizardShellContent() {
   }
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-2xl shadow-black/20 sm:p-6">
-        <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+    <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 pb-28 shadow-2xl shadow-black/20 sm:p-6 sm:pb-6">
+        <div className="mb-5 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+          <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
             Step {currentStepNumber} di {WIZARD_STEPS.length}
           </p>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            {currentStep?.descrizione ??
-              "Compila i dati del sopralluogo senza perdere la bozza."}
+          <h2 className="mt-1 text-xl font-semibold">
+            {currentStep?.titolo ?? "Sopralluogo"}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+            {currentStep?.descrizione ?? "Compila i dati del sopralluogo."}
           </p>
         </div>
 
@@ -66,9 +68,9 @@ function WizardShellContent() {
           </div>
         )}
 
-        <div className="mt-8 flex flex-wrap gap-3 border-t border-[var(--border)] pt-5">
+        <div className="fixed inset-x-0 bottom-0 z-20 flex gap-3 border-t border-[var(--border)] bg-[color:rgba(16,32,29,0.96)] p-4 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:mt-8 sm:flex-wrap sm:border-t sm:bg-transparent sm:p-0 sm:pt-5 sm:shadow-none">
           <button
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:py-2"
             disabled={!canGoBack}
             type="button"
             onClick={actions.vaiIndietro}
@@ -76,20 +78,20 @@ function WizardShellContent() {
             Indietro
           </button>
           <button
-            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:py-2"
             disabled={!canGoForward || !stepValidation.valid}
             type="button"
             onClick={handleGoForward}
           >
-            Continua
+            {canGoForward ? "Continua" : "Completato"}
           </button>
         </div>
       </div>
 
-      <aside className="space-y-6">
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+      <aside className="space-y-5">
+        <div className="hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 lg:block">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+            <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
               Percorso
             </p>
             <p className="text-xs text-[var(--muted)]">
@@ -149,38 +151,18 @@ function WizardShellContent() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+        <details className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 lg:hidden">
+          <summary className="cursor-pointer text-sm font-semibold">
+            Sintesi sopralluogo
+          </summary>
+          <SummaryGrid payloadReady={payloadResult.ok} summary={summary} />
+        </details>
+
+        <div className="hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 lg:block">
+          <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
             Sintesi
           </p>
-          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <SummaryTile
-              label="Cliente"
-              value={summary.customer_full_name || "Da completare"}
-            />
-            <SummaryTile
-              label="Invio"
-              value={payloadResult.ok ? "Pronto" : "In attesa"}
-            />
-            <SummaryTile label="Falde" value={String(summary.surfaces_count)} />
-            <SummaryTile
-              label="Ostacoli"
-              value={String(summary.obstacles_count)}
-            />
-            <SummaryTile
-              label="Moduli"
-              value={String(summary.layout_modules_count)}
-            />
-            <SummaryTile
-              label="Foto"
-              value={String(summary.photos_count)}
-            />
-          </dl>
-        </div>
-
-        <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-5 text-sm leading-6 text-[var(--muted)]">
-          La bozza viene salvata nel browser. Ricaricando la pagina, i dati
-          compilati restano disponibili senza usare database o backend.
+          <SummaryGrid payloadReady={payloadResult.ok} summary={summary} />
         </div>
       </aside>
     </section>
@@ -190,37 +172,35 @@ function WizardShellContent() {
 const STEP_RENDERERS: Record<WizardStepId, () => ReactNode> = {
   cliente: () => <ClienteStep />,
   tetto: () => <TettoStep />,
-  falde: () => <FaldeStep />,
   ostacoli: () => <OstacoliStep />,
   pannello: () => <PannelloStep />,
   layout_moduli: () => <LayoutModuliStep />,
   foto: () => <FotoStep />,
   revisione: () => <RevisioneStep />,
-  invio: () => (
-    <StepPlaceholder
-      title="Invio a n8n"
-      description="L'invio reale non è ancora implementato in questa fase."
-    />
-  ),
 };
 
 function renderCurrentStep(stepId: WizardStepId) {
   return STEP_RENDERERS[stepId]();
 }
 
-type StepPlaceholderProps = {
-  title: string;
-  description: string;
+type SummaryGridProps = {
+  payloadReady: boolean;
+  summary: WizardSummary;
 };
 
-function StepPlaceholder({ title, description }: StepPlaceholderProps) {
+function SummaryGrid({ payloadReady, summary }: SummaryGridProps) {
   return (
-    <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-5">
-      <h2 className="text-xl font-semibold">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-        {description}
-      </p>
-    </div>
+    <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+      <SummaryTile
+        label="Cliente"
+        value={summary.customer_full_name || "Da completare"}
+      />
+      <SummaryTile label="Falde" value={String(summary.surfaces_count)} />
+      <SummaryTile label="Ostacoli" value={String(summary.obstacles_count)} />
+      <SummaryTile label="Moduli" value={String(summary.layout_modules_count)} />
+      <SummaryTile label="Foto" value={String(summary.photos_count)} />
+      <SummaryTile label="Invio" value={payloadReady ? "Pronto" : "In attesa"} />
+    </dl>
   );
 }
 
