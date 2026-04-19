@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import type { RoofType, WizardStepId } from "@/types/domain";
-import type { PreliminaryModuleLayout } from "@/types/layout";
+import type { LayoutTargetConfig, PreliminaryModuleLayout } from "@/types/layout";
 import type { PanelTechnicalData } from "@/types/panels";
 import type { SurveyPhoto } from "@/types/photos";
 import type {
@@ -59,6 +59,7 @@ type WizardActions = {
     technicalData?: PanelTechnicalData,
   ) => void;
   impostaDatiTecniciPannello: (technicalData: PanelTechnicalData) => void;
+  configuraTargetLayout: (config: LayoutTargetConfig) => void;
   impostaLayoutPreliminare: (layout: PreliminaryModuleLayout | null) => void;
   aggiungiFotoSopralluogo: (photos: SurveyPhoto[]) => void;
   aggiornaFotoSopralluogo: (
@@ -151,6 +152,8 @@ export function WizardProvider({ children }: WizardProviderProps) {
         dispatch({ type: "panel/set", panel, technicalData }),
       impostaDatiTecniciPannello: (technicalData) =>
         dispatch({ type: "panel/set_technical_data", technicalData }),
+      configuraTargetLayout: (config) =>
+        dispatch({ type: "layout/configure", config }),
       impostaLayoutPreliminare: (layout) =>
         dispatch({ type: "layout/set", layout }),
       aggiungiFotoSopralluogo: (photos) =>

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import type { WizardStepId } from "@/types/domain";
 import { getSurveyPhotoTypeLabel } from "@/features/foto/FotoStep";
 import { inviaSopralluogoAN8n } from "@/lib/api/n8n";
-import { formattaWatt } from "@/lib/formatters/units";
+import { formattaKilowattPicco } from "@/lib/formatters/units";
 import { useWizard } from "@/features/wizard/WizardProvider";
 import { costruisciPayloadN8nV1 } from "@/features/wizard/wizardPayload";
 import { validateFinalSurvey } from "@/features/wizard/wizardValidation";
@@ -254,19 +254,56 @@ export function RevisioneStep() {
             <DescriptionList
               items={[
                 [
-                  "Moduli totali",
+                  "Modalità layout",
+                  getLayoutModeLabel(state.preliminary_layout.layout_mode),
+                ],
+                [
+                  "Target impianto",
+                  state.preliminary_layout.target_power_w !== null
+                    ? formattaKilowattPicco(
+                        state.preliminary_layout.target_power_w,
+                      )
+                    : "Non impostato",
+                ],
+                [
+                  "Moduli target",
+                  state.preliminary_layout.target_module_count !== null
+                    ? String(state.preliminary_layout.target_module_count)
+                    : "Non impostati",
+                ],
+                [
+                  "Moduli effettivi",
                   String(state.preliminary_layout.total_modules),
                 ],
                 [
-                  "Potenza totale",
-                  formattaWatt(state.preliminary_layout.total_power_w),
+                  "Potenza effettiva",
+                  formattaKilowattPicco(state.preliminary_layout.total_power_w),
                 ],
                 [
-                  "Falde calcolate",
-                  String(state.preliminary_layout.surfaces.length),
+                  "Falde utilizzate",
+                  String(
+                    state.preliminary_layout.surfaces.filter(
+                      (surfaceLayout) => surfaceLayout.module_count > 0,
+                    ).length,
+                  ),
+                ],
+                [
+                  "Stato target",
+                  state.preliminary_layout.target_reached === null
+                    ? "Non applicabile"
+                    : state.preliminary_layout.target_reached
+                      ? "Raggiunto"
+                      : "Non raggiunto",
                 ],
               ]}
             />
+            {state.preliminary_layout.messages.length > 0 && (
+              <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+                {state.preliminary_layout.messages.map((message) => (
+                  <li key={message}>{message}</li>
+                ))}
+              </ul>
+            )}
             <div className="space-y-3">
               {state.preliminary_layout.surfaces.map((surfaceLayout) => (
                 <div
@@ -277,7 +314,7 @@ export function RevisioneStep() {
                   <p className="mt-1 text-[var(--muted)]">
                     Orientamento: {surfaceLayout.selected_orientation}. Moduli:{" "}
                     {surfaceLayout.module_count}. Potenza:{" "}
-                    {formattaWatt(surfaceLayout.total_power_w)}.
+                    {formattaKilowattPicco(surfaceLayout.total_power_w)}.
                   </p>
                   {surfaceLayout.messages.length > 0 && (
                     <ul className="mt-2 list-disc space-y-1 pl-5 text-[var(--muted)]">
@@ -423,4 +460,10 @@ function getObstacleDisplayName(obstacleId: string, obstacleType: string): strin
   }
 
   return obstacleType;
+}
+
+function getLayoutModeLabel(mode: "max_modules" | "target_power"): string {
+  return mode === "target_power"
+    ? "Potenza target impianto"
+    : "Massimo numero di moduli possibile";
 }

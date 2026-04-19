@@ -6,6 +6,8 @@ import {
   WIZARD_STEP_IDS,
 } from "@/types/domain";
 import type {
+  LayoutCalculationMode,
+  LayoutTargetConfig,
   PreliminaryModuleLayout,
   PositionedModule,
   SurfaceModuleLayout,
@@ -28,6 +30,7 @@ import type {
   TriangleSurfaceDimensions,
 } from "@/types/survey";
 import {
+  createDefaultLayoutTargetConfig,
   createEmptyWizardState,
   createSurveyMeta,
   type WizardState,
@@ -117,6 +120,7 @@ export function normalizeWizardState(value: unknown): WizardState | null {
     value.panel_technical_data,
   );
   const preliminaryLayout = normalizePreliminaryLayout(value.preliminary_layout);
+  const layoutConfig = normalizeLayoutTargetConfig(value.layout_config);
   const photos = Array.isArray(value.photos)
     ? value.photos.map(normalizeSurveyPhoto).filter(isSurveyPhoto)
     : [];
@@ -141,6 +145,7 @@ export function normalizeWizardState(value: unknown): WizardState | null {
     },
     panel_selection: panelSelection,
     panel_technical_data: panelTechnicalData,
+    layout_config: reconcileLayoutTargetConfig(layoutConfig, panelTechnicalData.power_w),
     preliminary_layout: preliminaryLayout,
     photos,
     active_client_profile: activeClientProfile,
@@ -192,6 +197,46 @@ function normalizePanelTechnicalData(value: unknown): PanelTechnicalData {
   };
 }
 
+function normalizeLayoutTargetConfig(value: unknown): LayoutTargetConfig {
+  if (!isRecord(value)) {
+    return createDefaultLayoutTargetConfig();
+  }
+
+  const mode = isLayoutCalculationMode(value.mode)
+    ? value.mode
+    : "max_modules";
+
+  if (mode !== "target_power") {
+    return createDefaultLayoutTargetConfig();
+  }
+
+  return {
+    mode,
+    target_module_count: readNullablePositiveInteger(
+      value.target_module_count,
+    ),
+    target_power_w: readNullablePositiveNumber(value.target_power_w),
+  };
+}
+
+function reconcileLayoutTargetConfig(
+  config: LayoutTargetConfig,
+  panelPowerW: number,
+): LayoutTargetConfig {
+  if (config.mode !== "target_power") {
+    return createDefaultLayoutTargetConfig();
+  }
+
+  return {
+    mode: "target_power",
+    target_module_count: config.target_module_count,
+    target_power_w:
+      config.target_module_count !== null && panelPowerW > 0
+        ? config.target_module_count * panelPowerW
+        : null,
+  };
+}
+
 function normalizePreliminaryLayout(
   value: unknown,
 ): PreliminaryModuleLayout | null {
@@ -200,13 +245,29 @@ function normalizePreliminaryLayout(
   }
 
   const surfaces = value.surfaces.filter(isSurfaceModuleLayout);
+  const totalModules = readNumberField(value, "total_modules");
+  const totalPowerW = readNumberField(value, "total_power_w");
 
   return {
     calculated_at: readString(value.calculated_at, ""),
+    layout_mode: isLayoutCalculationMode(value.layout_mode)
+      ? value.layout_mode
+      : "max_modules",
     panel: normalizePanelTechnicalData(value.panel),
     surfaces,
-    total_modules: readNumberField(value, "total_modules"),
-    total_power_w: readNumberField(value, "total_power_w"),
+    target_module_count: readNullablePositiveInteger(value.target_module_count),
+    target_power_w: readNullablePositiveNumber(value.target_power_w),
+    available_modules: isNumber(value.available_modules)
+      ? value.available_modules
+      : totalModules,
+    available_power_w: isNumber(value.available_power_w)
+      ? value.available_power_w
+      : totalPowerW,
+    target_reached: isBoolean(value.target_reached)
+      ? value.target_reached
+      : null,
+    total_modules: totalModules,
+    total_power_w: totalPowerW,
     messages: Array.isArray(value.messages)
       ? value.messages.filter(isString)
       : [],
@@ -420,6 +481,10 @@ function isWizardStepId(value: unknown): value is WizardState["currentStepId"] {
   return isString(value) && WIZARD_STEP_IDS.includes(value as never);
 }
 
+function isLayoutCalculationMode(value: unknown): value is LayoutCalculationMode {
+  return value === "max_modules" || value === "target_power";
+}
+
 function isSurveyPhotoType(value: unknown): value is SurveyPhoto["type"] {
   return (
     value === "tetto_panoramica" ||
@@ -459,12 +524,24 @@ function isNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
+}
+
 function readStringField(value: unknown, field: string): string {
   return isRecord(value) && isString(value[field]) ? value[field] : "";
 }
 
 function readNumberField(value: unknown, field: string): number {
   return isRecord(value) && isNumber(value[field]) ? value[field] : 0;
+}
+
+function readNullablePositiveInteger(value: unknown): number | null {
+  return isNumber(value) && value > 0 ? Math.floor(value) : null;
+}
+
+function readNullablePositiveNumber(value: unknown): number | null {
+  return isNumber(value) && value > 0 ? value : null;
 }
 
 function readString(value: unknown, fallback: string): string {

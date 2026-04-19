@@ -1,7 +1,11 @@
 "use client";
 
-import { formattaWatt } from "@/lib/formatters/units";
-import { calcolaLayoutModuliPreliminare } from "@/lib/geometry/moduleLayout";
+import { useMemo } from "react";
+import { formattaKilowattPicco, formattaWatt } from "@/lib/formatters/units";
+import {
+  calcolaCapacitaFaldeLayout,
+  calcolaLayoutModuliPreliminare,
+} from "@/lib/geometry/moduleLayout";
 import { creaOstacoloGeometrico } from "@/lib/geometry/obstacles";
 import {
   creaPoligonoFalda,
@@ -24,6 +28,25 @@ export function LayoutModuliStep() {
   const canCalculate =
     panelErrors.length === 0 && state.roof.surfaces.length > 0;
   const layout = state.preliminary_layout;
+  const capacityLayouts = useMemo(
+    () =>
+      canCalculate
+        ? calcolaCapacitaFaldeLayout(
+            state.roof.surfaces,
+            state.panel_technical_data,
+          )
+        : [],
+    [canCalculate, state.panel_technical_data, state.roof.surfaces],
+  );
+  const totalAvailableModules = capacityLayouts.reduce(
+    (total, surfaceLayout) => total + surfaceLayout.module_count,
+    0,
+  );
+  const targetOptions = buildTargetOptions(
+    state.panel_technical_data.power_w,
+    totalAvailableModules,
+    state.layout_config.target_module_count,
+  );
 
   function handleCalculate() {
     if (!canCalculate) {
@@ -33,8 +56,41 @@ export function LayoutModuliStep() {
     const nextLayout = calcolaLayoutModuliPreliminare(
       state.roof.surfaces,
       state.panel_technical_data,
+      state.layout_config,
     );
     actions.impostaLayoutPreliminare(nextLayout);
+  }
+
+  function handleModeChange(mode: "max_modules" | "target_power") {
+    actions.configuraTargetLayout({
+      mode,
+      target_module_count:
+        mode === "target_power"
+          ? state.layout_config.target_module_count
+          : null,
+      target_power_w:
+        mode === "target_power"
+          ? state.layout_config.target_power_w
+          : null,
+    });
+  }
+
+  function handleTargetChange(value: string) {
+    const targetModuleCount = Number(value);
+
+    actions.configuraTargetLayout({
+      mode: "target_power",
+      target_module_count:
+        Number.isFinite(targetModuleCount) && targetModuleCount > 0
+          ? targetModuleCount
+          : null,
+      target_power_w:
+        Number.isFinite(targetModuleCount) &&
+        targetModuleCount > 0 &&
+        state.panel_technical_data.power_w > 0
+          ? targetModuleCount * state.panel_technical_data.power_w
+          : null,
+    });
   }
 
   return (
@@ -101,6 +157,55 @@ export function LayoutModuliStep() {
             }
           />
         </dl>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <label className={labelClassName}>
+            Modalità layout
+            <select
+              className={inputClassName}
+              value={state.layout_config.mode}
+              onChange={(event) =>
+                handleModeChange(
+                  event.target.value === "target_power"
+                    ? "target_power"
+                    : "max_modules",
+                )
+              }
+            >
+              <option value="max_modules">
+                Massimo numero di moduli possibile
+              </option>
+              <option value="target_power">Potenza target impianto</option>
+            </select>
+          </label>
+
+          {state.layout_config.mode === "target_power" && (
+            <label className={labelClassName}>
+              Target impianto
+              <select
+                className={inputClassName}
+                value={state.layout_config.target_module_count ?? ""}
+                onChange={(event) => handleTargetChange(event.target.value)}
+              >
+                <option value="">Seleziona un target</option>
+                {targetOptions.map((option) => (
+                  <option
+                    key={option.moduleCount}
+                    value={option.moduleCount}
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+        {state.layout_config.mode === "target_power" && (
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            Il target è espresso come numero intero di moduli: la potenza viene
+            calcolata usando la potenza del pannello selezionato. Capacità reale
+            stimata sulle falde compilate: {totalAvailableModules} moduli.
+          </p>
+        )}
         <button
           className="mt-5 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!canCalculate}
@@ -134,16 +239,48 @@ function LayoutResultView({ layout, surfaces }: LayoutResultViewProps) {
       <section className="rounded-lg border border-[var(--border)] bg-white p-5">
         <h3 className="text-lg font-semibold">Riepilogo complessivo</h3>
         <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
-          <SummaryItem label="Moduli totali" value={String(layout.total_modules)} />
           <SummaryItem
-            label="Potenza totale"
-            value={formattaWatt(layout.total_power_w)}
+            label="Modalità layout"
+            value={getLayoutModeLabel(layout.layout_mode)}
           />
           <SummaryItem
-            label="Falde calcolate"
-            value={String(layout.surfaces.length)}
+            label="Moduli target"
+            value={
+              layout.target_module_count !== null
+                ? String(layout.target_module_count)
+                : "Non impostato"
+            }
+          />
+          <SummaryItem
+            label="Potenza target"
+            value={
+              layout.target_power_w !== null
+                ? formattaKilowattPicco(layout.target_power_w)
+                : "Non impostata"
+            }
+          />
+          <SummaryItem
+            label="Moduli effettivi"
+            value={String(layout.total_modules)}
+          />
+          <SummaryItem
+            label="Potenza effettiva"
+            value={formattaKilowattPicco(layout.total_power_w)}
+          />
+          <SummaryItem
+            label="Falde utilizzate"
+            value={String(getUsedSurfacesCount(layout))}
           />
         </dl>
+        {layout.layout_mode === "target_power" && (
+          <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+            Disponibilità calcolata: {layout.available_modules} moduli,{" "}
+            {formattaKilowattPicco(layout.available_power_w)}.{" "}
+            {layout.target_reached
+              ? "Target raggiunto."
+              : "Target non raggiunto: il layout usa il massimo inseribile."}
+          </p>
+        )}
         {layout.messages.length > 0 && (
           <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
             {layout.messages.map((message) => (
@@ -175,7 +312,7 @@ function LayoutResultView({ layout, surfaces }: LayoutResultViewProps) {
               <p className="mt-1 text-sm text-[var(--muted)]">
                 Orientamento scelto: {surfaceLayout.selected_orientation}.
                 Moduli: {surfaceLayout.module_count}. Potenza:{" "}
-                {formattaWatt(surfaceLayout.total_power_w)}.
+                {formattaKilowattPicco(surfaceLayout.total_power_w)}.
               </p>
               <p className="mt-1 text-sm text-[var(--muted)]">
                 Superficie utile approssimativa:{" "}
@@ -200,6 +337,10 @@ function LayoutResultView({ layout, surfaces }: LayoutResultViewProps) {
     </div>
   );
 }
+
+const inputClassName =
+  "mt-2 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]";
+const labelClassName = "text-sm font-medium";
 
 type LayoutPreviewSvgProps = {
   surface: SurfaceData;
@@ -323,6 +464,43 @@ function SummaryItem({ label, value }: SummaryItemProps) {
       <dd className="font-medium">{value}</dd>
     </div>
   );
+}
+
+function buildTargetOptions(
+  panelPowerW: number,
+  availableModules: number,
+  currentTargetModuleCount: number | null,
+): Array<{ label: string; moduleCount: number }> {
+  if (panelPowerW <= 0) {
+    return [];
+  }
+
+  const maxOptionCount = Math.max(
+    availableModules + 6,
+    currentTargetModuleCount ?? 0,
+    12,
+  );
+
+  return Array.from({ length: maxOptionCount }, (_, index) => {
+    const moduleCount = index + 1;
+    const targetPowerW = moduleCount * panelPowerW;
+
+    return {
+      moduleCount,
+      label: `${moduleCount} ${moduleCount === 1 ? "modulo" : "moduli"} · ${formattaKilowattPicco(targetPowerW)}`,
+    };
+  });
+}
+
+function getLayoutModeLabel(mode: PreliminaryModuleLayout["layout_mode"]): string {
+  return mode === "target_power"
+    ? "Potenza target impianto"
+    : "Massimo numero di moduli possibile";
+}
+
+function getUsedSurfacesCount(layout: PreliminaryModuleLayout): number {
+  return layout.surfaces.filter((surfaceLayout) => surfaceLayout.module_count > 0)
+    .length;
 }
 
 function getPanelTechnicalErrors(panel: {

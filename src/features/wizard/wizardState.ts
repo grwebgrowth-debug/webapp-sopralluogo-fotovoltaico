@@ -1,6 +1,6 @@
 import type { RoofType, WizardStepId } from "@/types/domain";
 import { WIZARD_STEP_IDS } from "@/types/domain";
-import type { PreliminaryModuleLayout } from "@/types/layout";
+import type { LayoutTargetConfig, PreliminaryModuleLayout } from "@/types/layout";
 import type { PanelTechnicalData } from "@/types/panels";
 import type { SurveyPhoto } from "@/types/photos";
 import type { ActiveClientProfileSnapshot } from "@/types/profiles";
@@ -28,6 +28,7 @@ export type WizardState = {
   roof: WizardRoofState;
   panel_selection: PanelSelection;
   panel_technical_data: PanelTechnicalData;
+  layout_config: LayoutTargetConfig;
   preliminary_layout: PreliminaryModuleLayout | null;
   photos: SurveyPhoto[];
   active_client_profile: ActiveClientProfileSnapshot | null;
@@ -110,6 +111,10 @@ export type WizardAction =
       technicalData: PanelTechnicalData;
     }
   | {
+      type: "layout/configure";
+      config: LayoutTargetConfig;
+    }
+  | {
       type: "layout/set";
       layout: PreliminaryModuleLayout | null;
     }
@@ -167,6 +172,14 @@ export function createEmptyPanelTechnicalData(): PanelTechnicalData {
   };
 }
 
+export function createDefaultLayoutTargetConfig(): LayoutTargetConfig {
+  return {
+    mode: "max_modules",
+    target_module_count: null,
+    target_power_w: null,
+  };
+}
+
 export function createSurveyMeta(): SurveyMeta {
   return {
     source: "webapp_sopralluogo_fotovoltaico_v1",
@@ -192,6 +205,7 @@ export function createEmptyWizardState(): WizardState {
     },
     panel_selection: createEmptyPanelSelection(),
     panel_technical_data: createEmptyPanelTechnicalData(),
+    layout_config: createDefaultLayoutTargetConfig(),
     preliminary_layout: null,
     photos: [],
     active_client_profile: null,
@@ -375,6 +389,10 @@ export function impostaPannello(
     ...state,
     panel_selection: panel,
     panel_technical_data: technicalData ?? state.panel_technical_data,
+    layout_config: aggiornaPotenzaTargetLayout(
+      state.layout_config,
+      technicalData ?? state.panel_technical_data,
+    ),
     preliminary_layout: null,
   });
 }
@@ -386,6 +404,21 @@ export function impostaDatiTecniciPannello(
   return touchState({
     ...state,
     panel_technical_data: technicalData,
+    layout_config: aggiornaPotenzaTargetLayout(state.layout_config, technicalData),
+    preliminary_layout: null,
+  });
+}
+
+export function configuraTargetLayout(
+  state: WizardState,
+  config: LayoutTargetConfig,
+): WizardState {
+  return touchState({
+    ...state,
+    layout_config: normalizeLayoutTargetConfig(
+      config,
+      state.panel_technical_data.power_w,
+    ),
     preliminary_layout: null,
   });
 }
@@ -503,6 +536,8 @@ export function wizardReducer(
       return impostaPannello(state, action.panel, action.technicalData);
     case "panel/set_technical_data":
       return impostaDatiTecniciPannello(state, action.technicalData);
+    case "layout/configure":
+      return configuraTargetLayout(state, action.config);
     case "layout/set":
       return impostaLayoutPreliminare(state, action.layout);
     case "photos/add":
@@ -557,6 +592,38 @@ function touchState(state: WizardState): WizardState {
   return {
     ...state,
     updated_at: new Date().toISOString(),
+  };
+}
+
+function aggiornaPotenzaTargetLayout(
+  config: LayoutTargetConfig,
+  panel: PanelTechnicalData,
+): LayoutTargetConfig {
+  return normalizeLayoutTargetConfig(config, panel.power_w);
+}
+
+function normalizeLayoutTargetConfig(
+  config: LayoutTargetConfig,
+  panelPowerW: number,
+): LayoutTargetConfig {
+  if (config.mode !== "target_power") {
+    return createDefaultLayoutTargetConfig();
+  }
+
+  const targetModuleCount =
+    config.target_module_count !== null &&
+    Number.isFinite(config.target_module_count) &&
+    config.target_module_count > 0
+      ? Math.floor(config.target_module_count)
+      : null;
+
+  return {
+    mode: "target_power",
+    target_module_count: targetModuleCount,
+    target_power_w:
+      targetModuleCount !== null && panelPowerW > 0
+        ? targetModuleCount * panelPowerW
+        : null,
   };
 }
 

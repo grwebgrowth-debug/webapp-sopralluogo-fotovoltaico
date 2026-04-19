@@ -1,6 +1,13 @@
 import type { PanelTechnicalData } from "./panels";
 
 export type ModuleOrientation = "verticale" | "orizzontale";
+export type LayoutCalculationMode = "max_modules" | "target_power";
+
+export type LayoutTargetConfig = {
+  mode: LayoutCalculationMode;
+  target_module_count: number | null;
+  target_power_w: number | null;
+};
 
 export type PositionedModule = {
   module_id: string;
@@ -26,8 +33,14 @@ export type SurfaceModuleLayout = {
 
 export type PreliminaryModuleLayout = {
   calculated_at: string;
+  layout_mode: LayoutCalculationMode;
   panel: PanelTechnicalData;
   surfaces: SurfaceModuleLayout[];
+  target_module_count: number | null;
+  target_power_w: number | null;
+  available_modules: number;
+  available_power_w: number;
+  target_reached: boolean | null;
   total_modules: number;
   total_power_w: number;
   messages: string[];

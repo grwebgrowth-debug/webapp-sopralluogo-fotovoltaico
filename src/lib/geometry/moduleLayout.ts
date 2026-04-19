@@ -1,4 +1,5 @@
 import type {
+  LayoutTargetConfig,
   ModuleOrientation,
   PositionedModule,
   PreliminaryModuleLayout,
@@ -27,38 +28,75 @@ type Rect2D = {
 export function calcolaLayoutModuliPreliminare(
   surfaces: SurfaceData[],
   panel: PanelTechnicalData,
+  config?: LayoutTargetConfig,
 ): PreliminaryModuleLayout {
   const panelErrors = getPanelDataErrors(panel);
+  const layoutConfig = normalizeLayoutTargetConfig(config, panel.power_w);
 
   if (panelErrors.length > 0) {
     return {
       calculated_at: new Date().toISOString(),
+      layout_mode: layoutConfig.mode,
       panel,
       surfaces: [],
+      target_module_count: layoutConfig.target_module_count,
+      target_power_w: layoutConfig.target_power_w,
+      available_modules: 0,
+      available_power_w: 0,
+      target_reached: layoutConfig.mode === "target_power" ? false : null,
       total_modules: 0,
       total_power_w: 0,
       messages: panelErrors,
     };
   }
 
-  const surfaceLayouts = surfaces.map((surface) =>
-    calcolaLayoutFaldaPreliminare(surface, panel),
-  );
+  const surfaceLayouts = calcolaCapacitaFaldeLayout(surfaces, panel);
+  const availableModules = sumModules(surfaceLayouts);
+  const availablePowerW = availableModules * panel.power_w;
+
+  if (
+    layoutConfig.mode === "target_power" &&
+    layoutConfig.target_module_count !== null
+  ) {
+    return calcolaLayoutTarget(
+      panel,
+      surfaceLayouts,
+      layoutConfig,
+      availableModules,
+      availablePowerW,
+    );
+  }
 
   return {
     calculated_at: new Date().toISOString(),
+    layout_mode: "max_modules",
     panel,
     surfaces: surfaceLayouts,
-    total_modules: surfaceLayouts.reduce(
-      (total, layout) => total + layout.module_count,
-      0,
-    ),
-    total_power_w: surfaceLayouts.reduce(
-      (total, layout) => total + layout.total_power_w,
-      0,
-    ),
-    messages: surfaceLayouts.flatMap((layout) => layout.messages),
+    target_module_count: null,
+    target_power_w: null,
+    available_modules: availableModules,
+    available_power_w: availablePowerW,
+    target_reached: null,
+    total_modules: availableModules,
+    total_power_w: availablePowerW,
+    messages: [
+      ...(layoutConfig.mode === "target_power"
+        ? ["Target impianto non impostato: calcolo del massimo numero di moduli possibile."]
+        : []),
+      ...surfaceLayouts.flatMap((layout) => layout.messages),
+    ],
   };
+}
+
+export function calcolaCapacitaFaldeLayout(
+  surfaces: SurfaceData[],
+  panel: PanelTechnicalData,
+): SurfaceModuleLayout[] {
+  if (getPanelDataErrors(panel).length > 0) {
+    return [];
+  }
+
+  return surfaces.map((surface) => calcolaLayoutFaldaPreliminare(surface, panel));
 }
 
 export function calcolaLayoutFaldaPreliminare(
@@ -167,6 +205,118 @@ function scegliLayoutMigliore(
   }
 
   return verticalLayout;
+}
+
+function calcolaLayoutTarget(
+  panel: PanelTechnicalData,
+  surfaceLayouts: SurfaceModuleLayout[],
+  config: LayoutTargetConfig,
+  availableModules: number,
+  availablePowerW: number,
+): PreliminaryModuleLayout {
+  const targetModules = config.target_module_count ?? 0;
+  const targetPowerW = targetModules * panel.power_w;
+  let remainingModules = targetModules;
+  const orderedLayouts = [...surfaceLayouts].sort(compareSurfaceCapacity);
+  const selectedLayouts: SurfaceModuleLayout[] = [];
+
+  orderedLayouts.forEach((layout) => {
+    if (remainingModules <= 0 || layout.module_count <= 0) {
+      return;
+    }
+
+    const modulesToUse = Math.min(layout.module_count, remainingModules);
+    selectedLayouts.push(trimSurfaceLayout(layout, panel, modulesToUse));
+    remainingModules -= modulesToUse;
+  });
+
+  const totalModules = sumModules(selectedLayouts);
+  const messages = selectedLayouts.flatMap((layout) => layout.messages);
+
+  if (targetModules > availableModules) {
+    messages.unshift(
+      `Target non raggiunto: richiesti ${targetModules} moduli, inseribili ${availableModules}.`,
+    );
+  }
+
+  return {
+    calculated_at: new Date().toISOString(),
+    layout_mode: "target_power",
+    panel,
+    surfaces: selectedLayouts,
+    target_module_count: targetModules,
+    target_power_w: targetPowerW,
+    available_modules: availableModules,
+    available_power_w: availablePowerW,
+    target_reached: totalModules >= targetModules,
+    total_modules: totalModules,
+    total_power_w: totalModules * panel.power_w,
+    messages,
+  };
+}
+
+function trimSurfaceLayout(
+  layout: SurfaceModuleLayout,
+  panel: PanelTechnicalData,
+  moduleCount: number,
+): SurfaceModuleLayout {
+  const modules = layout.modules.slice(0, moduleCount);
+  const occupiedAreaCm2 = modules.reduce(
+    (total, module) => total + module.width_cm * module.height_cm,
+    0,
+  );
+
+  return {
+    ...layout,
+    module_count: modules.length,
+    modules,
+    occupied_area_cm2: occupiedAreaCm2,
+    total_power_w: modules.length * panel.power_w,
+  };
+}
+
+function compareSurfaceCapacity(
+  first: SurfaceModuleLayout,
+  second: SurfaceModuleLayout,
+): number {
+  if (second.module_count !== first.module_count) {
+    return second.module_count - first.module_count;
+  }
+
+  return second.useful_area_cm2 - first.useful_area_cm2;
+}
+
+function sumModules(layouts: SurfaceModuleLayout[]): number {
+  return layouts.reduce((total, layout) => total + layout.module_count, 0);
+}
+
+function normalizeLayoutTargetConfig(
+  config: LayoutTargetConfig | undefined,
+  panelPowerW: number,
+): LayoutTargetConfig {
+  if (!config || config.mode !== "target_power") {
+    return {
+      mode: "max_modules",
+      target_module_count: null,
+      target_power_w: null,
+    };
+  }
+
+  const targetModuleCount =
+    config.target_module_count !== null &&
+    Number.isFinite(config.target_module_count) &&
+    config.target_module_count > 0
+      ? Math.floor(config.target_module_count)
+      : null;
+
+  return {
+    mode: "target_power",
+    target_module_count: targetModuleCount,
+    target_power_w:
+      targetModuleCount !== null && panelPowerW > 0
+        ? targetModuleCount * panelPowerW
+        : null,
+  };
 }
 
 function isModuloInseribile(
