@@ -17,7 +17,7 @@ const SHAPE_OPTIONS: Array<{ value: SurfaceShape; label: string }> = [
 ];
 
 const inputClassName =
-  "mt-2 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]";
+  "mt-1.5 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]";
 const labelClassName = "text-sm font-medium";
 
 type FaldeStepProps = {
@@ -74,7 +74,7 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-4">
       {!embedded && (
         <div>
           <h2 className="text-2xl font-semibold">Falde</h2>
@@ -84,7 +84,7 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
         </div>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold">Falde del tetto</p>
           <p className="text-sm text-[var(--muted)]">
@@ -92,7 +92,7 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
           </p>
         </div>
         <button
-          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950"
+          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-slate-950"
           type="button"
           onClick={addSurface}
         >
@@ -105,14 +105,14 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
           Seleziona un tipo di tetto o aggiungi una falda manualmente.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {surfaces.map((surface, index) => {
             const isOpen = surface.surface_id === openSurfaceId;
 
             return (
               <section
                 key={surface.surface_id}
-                className="rounded-lg border border-[var(--border)] bg-white p-4"
+                className="min-w-0 rounded-lg border border-[var(--border)] bg-white p-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <button
@@ -120,10 +120,10 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
                     type="button"
                     onClick={() => setOpenSurfaceId(surface.surface_id)}
                   >
-                    <span className="block text-base font-semibold">
+                    <span className="block text-sm font-semibold">
                       Falda {index + 1}
                     </span>
-                    <span className="mt-1 block truncate text-sm text-[var(--muted)]">
+                    <span className="mt-0.5 block truncate text-xs text-[var(--muted)]">
                       {getSurfacePreview(surface)}
                     </span>
                   </button>
@@ -147,8 +147,8 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
                   </div>
                 </div>
 
-                <div className={`mt-4 ${isOpen ? "block" : "hidden"} md:block`}>
-                  <div className="grid gap-4 md:grid-cols-2">
+                <div className={`mt-3 ${isOpen ? "block" : "hidden"} md:block`}>
+                  <div className="grid min-w-0 gap-3 md:grid-cols-2">
                     <label className={labelClassName}>
                       Nome falda *
                       <input
@@ -202,11 +202,11 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
                     {renderDimensionFields(surface, updateSurface)}
                   </div>
 
-                  <details className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <details className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
                     <summary className="cursor-pointer text-sm font-semibold">
                       Dettagli falda
                     </summary>
-                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
                       <label className={labelClassName}>
                         Inclinazione
                         <input

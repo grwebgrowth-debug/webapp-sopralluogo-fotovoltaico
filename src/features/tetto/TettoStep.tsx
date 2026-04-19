@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { RoofType } from "@/types/domain";
 import { FaldeStep } from "@/features/falde/FaldeStep";
 import { ensureSurfaceCount } from "@/features/falde/surfaceFactory";
@@ -58,6 +59,7 @@ const ROOF_TYPE_OPTIONS: Array<{
 export function TettoStep() {
   const { actions, state } = useWizard();
   const selectedRoofType = state.roof.roof_type;
+  const [roofTypeOpen, setRoofTypeOpen] = useState(!selectedRoofType);
   const selectedOption = ROOF_TYPE_OPTIONS.find(
     (option) => option.value === selectedRoofType,
   );
@@ -67,8 +69,15 @@ export function TettoStep() {
       ? customSurfaceCount ?? 0
       : selectedOption?.defaultSurfaceCount ?? 0;
 
+  useEffect(() => {
+    if (!selectedRoofType) {
+      setRoofTypeOpen(true);
+    }
+  }, [selectedRoofType]);
+
   function handleSelectRoofType(option: (typeof ROOF_TYPE_OPTIONS)[number]) {
     actions.impostaTipoTetto(option.value);
+    setRoofTypeOpen(false);
 
     if (state.roof.surfaces.length === 0) {
       actions.sostituisciFalde(
@@ -88,7 +97,7 @@ export function TettoStep() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <h2 className="text-2xl font-semibold">Tetto e falde</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
@@ -96,16 +105,35 @@ export function TettoStep() {
         </p>
       </div>
 
-      <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-        <p className="text-sm font-semibold">Tipo di tetto</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <details
+        className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3"
+        open={roofTypeOpen}
+        onToggle={(event) => setRoofTypeOpen(event.currentTarget.open)}
+      >
+        <summary className="cursor-pointer list-none">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Tipo di tetto</p>
+              <p className="mt-0.5 truncate text-sm text-[var(--muted)]">
+                {selectedOption
+                  ? `Tipo tetto: ${selectedOption.label}`
+                  : "Scegli il tipo di tetto"}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)]">
+              {roofTypeOpen ? "Chiudi" : "Cambia"}
+            </span>
+          </div>
+        </summary>
+
+        <div className="mt-4 grid gap-2 md:grid-cols-2">
           {ROOF_TYPE_OPTIONS.map((option) => {
             const selected = selectedRoofType === option.value;
 
             return (
               <button
                 key={option.value}
-                className={`rounded-lg border p-4 text-left transition ${
+                className={`rounded-lg border p-3 text-left transition ${
                   selected
                     ? "border-[var(--accent)] bg-[color:rgba(20,184,166,0.12)]"
                     : "border-[var(--border)] bg-white hover:border-[var(--accent)]"
@@ -113,10 +141,10 @@ export function TettoStep() {
                 type="button"
                 onClick={() => handleSelectRoofType(option)}
               >
-                <span className="block text-base font-semibold">
+                <span className="block text-sm font-semibold">
                   {option.label}
                 </span>
-                <span className="mt-1 block text-sm text-[var(--muted)]">
+                <span className="mt-1 block text-xs text-[var(--muted)]">
                   {option.description}
                 </span>
               </button>
@@ -142,8 +170,10 @@ export function TettoStep() {
             />
           </label>
         )}
+      </details>
 
-        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 sm:flex-row sm:items-center sm:justify-between">
+      {selectedRoofType && (
+        <div className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-[var(--muted)]">
             Falde presenti:{" "}
             <strong className="text-[var(--foreground)]">
@@ -159,7 +189,7 @@ export function TettoStep() {
             Aggiorna falde
           </button>
         </div>
-      </section>
+      )}
 
       {(selectedRoofType || state.roof.surfaces.length > 0) && (
         <FaldeStep embedded />

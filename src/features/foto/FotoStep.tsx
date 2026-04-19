@@ -62,7 +62,7 @@ export function FotoStep() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-5">
       <div>
         <h2 className="text-2xl font-semibold">Foto</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
@@ -70,7 +70,7 @@ export function FotoStep() {
         </p>
       </div>
 
-      <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-5">
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-lg font-semibold">Foto sopralluogo</h3>
@@ -78,7 +78,7 @@ export function FotoStep() {
               {state.photos.length} {state.photos.length === 1 ? "foto" : "foto"}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {photosRequired && (
               <span className="rounded-lg border border-[var(--accent)] px-3 py-2 text-sm text-[var(--accent)]">
                 Foto obbligatorie
@@ -86,6 +86,16 @@ export function FotoStep() {
             )}
             <label className="cursor-pointer rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950">
               Aggiungi foto
+              <input
+                accept="image/*"
+                className="sr-only"
+                multiple
+                type="file"
+                onChange={handleFilesSelected}
+              />
+            </label>
+            <label className="cursor-pointer rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold">
+              Fotocamera
               <input
                 accept="image/*"
                 capture="environment"
@@ -104,15 +114,15 @@ export function FotoStep() {
           Nessuna foto inserita.
         </section>
       ) : (
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3">
             {state.photos.map((photo, index) => {
               const selected = selectedPhoto?.photo_id === photo.photo_id;
 
               return (
                 <button
                   key={photo.photo_id}
-                  className={`overflow-hidden rounded-lg border text-left transition ${
+                  className={`min-w-0 overflow-hidden rounded-lg border text-left transition ${
                     selected
                       ? "border-[var(--accent)] bg-[var(--surface-soft)]"
                       : "border-[var(--border)] bg-white"
@@ -134,8 +144,8 @@ export function FotoStep() {
                       </div>
                     )}
                   </div>
-                  <div className="p-3">
-                    <p className="text-sm font-semibold">
+                  <div className="p-2.5">
+                    <p className="truncate text-sm font-semibold">
                       {getSurveyPhotoTypeLabel(photo.type)}
                     </p>
                     <p className="mt-1 truncate text-xs text-[var(--muted)]">
@@ -148,7 +158,7 @@ export function FotoStep() {
           </div>
 
           {selectedPhoto && (
-            <aside className="rounded-lg border border-[var(--border)] bg-white p-5 lg:sticky lg:top-6 lg:self-start">
+            <aside className="rounded-lg border border-[var(--border)] bg-white p-4 lg:sticky lg:top-5 lg:self-start">
               <h3 className="text-lg font-semibold">Dettagli foto</h3>
               <p className="mt-1 truncate text-xs text-[var(--muted)]">
                 {selectedPhoto.file_name || "Foto sopralluogo"} -{" "}

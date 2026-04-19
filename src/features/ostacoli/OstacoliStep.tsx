@@ -9,10 +9,8 @@ import {
 } from "react";
 import type { ObstacleShape, ObstacleType } from "@/types/domain";
 import type {
-  CircleObstacleDimensions,
   ObstacleData,
   ObstaclePosition,
-  RectObstacleDimensions,
   SurfaceData,
 } from "@/types/survey";
 import { useWizard } from "@/features/wizard/WizardProvider";
@@ -25,6 +23,8 @@ import {
   type Punto2D,
 } from "@/lib/geometry/roof";
 import { validaOstacoloDentroFalda } from "@/lib/geometry/validation";
+
+type NumberDraftValue = number | "";
 
 type ObstacleDraft = {
   obstacle_id: string;
@@ -39,12 +39,6 @@ type ObstacleDraft = {
   distance_from_base_right_corner_cm: NumberDraftValue;
   height_from_base_cm: NumberDraftValue;
 };
-
-type ObstacleFormErrors = {
-  errors: string[];
-};
-
-type NumberDraftValue = number | "";
 
 const OBSTACLE_TYPE_OPTIONS: Array<{ value: ObstacleType; label: string }> = [
   { value: "camino", label: "Camino" },
@@ -61,7 +55,7 @@ const OBSTACLE_SHAPE_OPTIONS: Array<{ value: ObstacleShape; label: string }> = [
 ];
 
 const inputClassName =
-  "mt-2 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]";
+  "mt-1.5 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]";
 const labelClassName = "text-sm font-medium";
 
 export function OstacoliStep() {
@@ -69,6 +63,10 @@ export function OstacoliStep() {
   const surfaces = state.roof.surfaces;
   const [selectedSurfaceId, setSelectedSurfaceId] = useState(
     surfaces[0]?.surface_id ?? "",
+  );
+  const [editingObstacleId, setEditingObstacleId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<ObstacleDraft>(() =>
+    createEmptyObstacleDraft(),
   );
   const selectedSurface = useMemo(
     () =>
@@ -85,10 +83,6 @@ export function OstacoliStep() {
   const selectedSurfaceLabel = selectedSurface
     ? getSurfaceLabel(selectedSurface, selectedSurfaceIndex)
     : "";
-  const [editingObstacleId, setEditingObstacleId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<ObstacleDraft>(() =>
-    createEmptyObstacleDraft(),
-  );
   const formValidation = selectedSurface
     ? validateObstacleDraft(draft, selectedSurface)
     : { errors: [], baseFieldsValid: false };
@@ -121,7 +115,7 @@ export function OstacoliStep() {
     }
   }, [selectedSurface, selectedSurfaceId, surfaces]);
 
-  function startNewObstacle() {
+  function resetDraft() {
     setEditingObstacleId(null);
     setDraft(createEmptyObstacleDraft());
   }
@@ -148,8 +142,7 @@ export function OstacoliStep() {
       actions.aggiungiOstacolo(selectedSurface.surface_id, obstacle);
     }
 
-    setEditingObstacleId(null);
-    setDraft(createEmptyObstacleDraft());
+    resetDraft();
   }
 
   function deleteObstacle(obstacleId: string) {
@@ -160,7 +153,7 @@ export function OstacoliStep() {
     actions.eliminaOstacolo(selectedSurface.surface_id, obstacleId);
 
     if (editingObstacleId === obstacleId) {
-      startNewObstacle();
+      resetDraft();
     }
   }
 
@@ -171,16 +164,12 @@ export function OstacoliStep() {
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
           Crea almeno una falda nello step Tetto e falde.
         </p>
-        <p className="hidden">
-          Crea almeno una falda nello step Tetto e falde.
-          “Falde”.
-        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4">
       <div>
         <h2 className="text-2xl font-semibold">Ostacoli</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
@@ -189,33 +178,26 @@ export function OstacoliStep() {
       </div>
 
       <section className="rounded-lg border border-[var(--border)] bg-white p-3">
-        <h3 className="sr-only">Falde</h3>
-        <p className="hidden">
-          Passa da una falda all'altra senza perdere gli ostacoli già inseriti.
-        </p>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {surfaces.map((surface, index) => {
-            const isSelected = surface.surface_id === selectedSurface?.surface_id;
+            const selected = surface.surface_id === selectedSurface?.surface_id;
 
             return (
               <button
                 key={surface.surface_id}
-                className={`shrink-0 rounded-lg border px-4 py-3 text-left text-sm transition ${
-                  isSelected
+                className={`shrink-0 rounded-lg border px-4 py-2.5 text-left text-sm transition ${
+                  selected
                     ? "border-[var(--accent)] bg-[var(--surface-soft)]"
                     : "border-[var(--border)] bg-white hover:border-[var(--accent)]"
                 }`}
                 type="button"
                 onClick={() => {
                   setSelectedSurfaceId(surface.surface_id);
-                  setEditingObstacleId(null);
-                  setDraft(createEmptyObstacleDraft());
+                  resetDraft();
                 }}
               >
-                <span className="font-semibold">
-                  Falda {index + 1}
-                </span>
-                <span className="mt-1 block whitespace-nowrap text-[var(--muted)]">
+                <span className="font-semibold">Falda {index + 1}</span>
+                <span className="mt-0.5 block whitespace-nowrap text-xs text-[var(--muted)]">
                   {surface.obstacles.length} ostacoli
                 </span>
               </button>
@@ -225,213 +207,214 @@ export function OstacoliStep() {
       </section>
 
       {selectedSurface && (
-        <div className="grid gap-6 xl:grid-cols-[minmax(300px,0.9fr)_minmax(360px,1.1fr)]">
-          <section className="rounded-lg border border-[var(--border)] bg-white p-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">
-                  {editingObstacleId ? "Modifica ostacolo" : "Nuovo ostacolo"}
-                </h3>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  {selectedSurfaceLabel}
-                </p>
-              </div>
-              {editingObstacleId && (
-                <button
-                  className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
-                  type="button"
-                  onClick={startNewObstacle}
-                >
-                  Annulla modifica
-                </button>
-              )}
-            </div>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <label className={labelClassName}>
-                Nome ostacolo
-                <input
-                  className={inputClassName}
-                  placeholder={getAutoObstacleName(draft.type, selectedSurface)}
-                  value={draft.obstacle_id}
-                  onChange={(event) =>
-                    setDraft((currentDraft) => ({
-                      ...currentDraft,
-                      obstacle_id: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-
-              <label className={labelClassName}>
-                Tipo ostacolo *
-                <select
-                  className={inputClassName}
-                  value={draft.type}
-                  onChange={(event) =>
-                    setDraft((currentDraft) => ({
-                      ...currentDraft,
-                      type: event.target.value as ObstacleType,
-                    }))
-                  }
-                >
-                  {OBSTACLE_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className={labelClassName}>
-                Forma ostacolo *
-                <select
-                  className={inputClassName}
-                  value={draft.shape}
-                  onChange={(event) =>
-                    setDraft((currentDraft) => ({
-                      ...currentDraft,
-                      shape: event.target.value as ObstacleShape,
-                    }))
-                  }
-                >
-                  {OBSTACLE_SHAPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className={labelClassName}>
-                Margine di sicurezza (cm) *
-                <input
-                  className={inputClassName}
-                  min={0}
-                  placeholder="Esempio: 30"
-                  type="number"
-                  value={draft.safety_margin_cm}
-                  onChange={(event) =>
-                    updateDraftNumber(
-                      setDraft,
-                      "safety_margin_cm",
-                      event.target.value,
-                    )
-                  }
-                />
-              </label>
-
-              {draft.shape === "rect" ? (
-                <>
-                  <NumberField
-                    label="Larghezza ostacolo"
-                    value={draft.width_cm}
-                    onChange={(value) =>
-                      updateDraftNumber(setDraft, "width_cm", value)
-                    }
-                  />
-                  <NumberField
-                    label="Altezza ostacolo"
-                    value={draft.height_cm}
-                    onChange={(value) =>
-                      updateDraftNumber(setDraft, "height_cm", value)
-                    }
-                  />
-                </>
-              ) : (
-                <NumberField
-                  label="Diametro ostacolo"
-                  value={draft.diameter_cm}
-                  onChange={(value) =>
-                    updateDraftNumber(setDraft, "diameter_cm", value)
-                  }
-                />
-              )}
-
-              {selectedSurface.shape === "triangle" ? (
-                <>
-                  <NumberField
-                    label="Angolo base destra"
-                    value={draft.distance_from_base_right_corner_cm}
-                    onChange={(value) =>
-                      updateDraftNumber(
-                        setDraft,
-                        "distance_from_base_right_corner_cm",
-                        value,
-                      )
-                    }
-                  />
-                  <NumberField
-                    label="Altezza H"
-                    value={draft.height_from_base_cm}
-                    onChange={(value) =>
-                      updateDraftNumber(setDraft, "height_from_base_cm", value)
-                    }
-                  />
-                </>
-              ) : (
-                <>
-                  <NumberField
-                    label="Base"
-                    value={draft.distance_from_base_cm}
-                    onChange={(value) =>
-                      updateDraftNumber(setDraft, "distance_from_base_cm", value)
-                    }
-                  />
-                  <NumberField
-                    label="Lato sinistro"
-                    value={draft.distance_from_left_cm}
-                    onChange={(value) =>
-                      updateDraftNumber(setDraft, "distance_from_left_cm", value)
-                    }
-                  />
-                </>
-              )}
-            </div>
-
-            {validationErrors.length > 0 && (
-              <div className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                <p className="text-sm font-semibold">
-                  Controlla i dati dell’ostacolo:
-                </p>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
-                  {validationErrors.map((error) => (
-                    <li key={error}>{error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={validationErrors.length > 0}
-                type="button"
-                onClick={saveObstacle}
-              >
-                {editingObstacleId ? "Salva modifica" : "Aggiungi ostacolo"}
-              </button>
-              <button
-                className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm"
-                type="button"
-                onClick={startNewObstacle}
-              >
-                Nuovo ostacolo
-              </button>
-            </div>
-          </section>
-
-          <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+        <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]">
+          <aside className="sticky top-0 z-10 order-1 self-start xl:top-5 xl:order-2">
             <ObstaclePreview
-              draft={draft}
               draftObstacle={draftObstacle}
               geometryValid={geometryValidation?.valido ?? false}
               savedObstacles={selectedSurface.obstacles}
               surface={selectedSurface}
               title="Preview falda"
             />
+          </aside>
 
-            <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+          <div className="order-2 min-w-0 space-y-4 xl:order-1">
+            <section className="rounded-lg border border-[var(--border)] bg-white p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {editingObstacleId ? "Modifica ostacolo" : "Nuovo ostacolo"}
+                  </h3>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    {selectedSurfaceLabel}
+                  </p>
+                </div>
+                {editingObstacleId && (
+                  <button
+                    className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
+                    type="button"
+                    onClick={resetDraft}
+                  >
+                    Annulla
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <label className={labelClassName}>
+                  Nome ostacolo
+                  <input
+                    className={inputClassName}
+                    placeholder={getAutoObstacleName(draft.type, selectedSurface)}
+                    value={draft.obstacle_id}
+                    onChange={(event) =>
+                      setDraft((currentDraft) => ({
+                        ...currentDraft,
+                        obstacle_id: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className={labelClassName}>
+                  Tipo *
+                  <select
+                    className={inputClassName}
+                    value={draft.type}
+                    onChange={(event) =>
+                      setDraft((currentDraft) => ({
+                        ...currentDraft,
+                        type: event.target.value as ObstacleType,
+                      }))
+                    }
+                  >
+                    {OBSTACLE_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className={labelClassName}>
+                  Forma *
+                  <select
+                    className={inputClassName}
+                    value={draft.shape}
+                    onChange={(event) =>
+                      setDraft((currentDraft) => ({
+                        ...currentDraft,
+                        shape: event.target.value as ObstacleShape,
+                      }))
+                    }
+                  >
+                    {OBSTACLE_SHAPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className={labelClassName}>
+                  Margine (cm) *
+                  <input
+                    className={inputClassName}
+                    min={0}
+                    placeholder="Esempio: 30"
+                    type="number"
+                    value={draft.safety_margin_cm}
+                    onChange={(event) =>
+                      updateDraftNumber(
+                        setDraft,
+                        "safety_margin_cm",
+                        event.target.value,
+                      )
+                    }
+                  />
+                </label>
+
+                {draft.shape === "rect" ? (
+                  <>
+                    <NumberField
+                      label="Larghezza"
+                      value={draft.width_cm}
+                      onChange={(value) =>
+                        updateDraftNumber(setDraft, "width_cm", value)
+                      }
+                    />
+                    <NumberField
+                      label="Altezza"
+                      value={draft.height_cm}
+                      onChange={(value) =>
+                        updateDraftNumber(setDraft, "height_cm", value)
+                      }
+                    />
+                  </>
+                ) : (
+                  <NumberField
+                    label="Diametro"
+                    value={draft.diameter_cm}
+                    onChange={(value) =>
+                      updateDraftNumber(setDraft, "diameter_cm", value)
+                    }
+                  />
+                )}
+
+                {selectedSurface.shape === "triangle" ? (
+                  <>
+                    <NumberField
+                      label="Angolo base destra"
+                      value={draft.distance_from_base_right_corner_cm}
+                      onChange={(value) =>
+                        updateDraftNumber(
+                          setDraft,
+                          "distance_from_base_right_corner_cm",
+                          value,
+                        )
+                      }
+                    />
+                    <NumberField
+                      label="Altezza H"
+                      value={draft.height_from_base_cm}
+                      onChange={(value) =>
+                        updateDraftNumber(setDraft, "height_from_base_cm", value)
+                      }
+                    />
+                  </>
+                ) : (
+                  <>
+                    <NumberField
+                      label="Base"
+                      value={draft.distance_from_base_cm}
+                      onChange={(value) =>
+                        updateDraftNumber(setDraft, "distance_from_base_cm", value)
+                      }
+                    />
+                    <NumberField
+                      label="Lato sinistro"
+                      value={draft.distance_from_left_cm}
+                      onChange={(value) =>
+                        updateDraftNumber(setDraft, "distance_from_left_cm", value)
+                      }
+                    />
+                  </>
+                )}
+              </div>
+
+              {validationErrors.length > 0 && (
+                <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                  <p className="text-sm font-semibold">
+                    Controlla i dati dell'ostacolo:
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+                    {validationErrors.map((error) => (
+                      <li key={error}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={validationErrors.length > 0}
+                  type="button"
+                  onClick={saveObstacle}
+                >
+                  {editingObstacleId ? "Salva modifica" : "Aggiungi ostacolo"}
+                </button>
+                <button
+                  className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm"
+                  type="button"
+                  onClick={resetDraft}
+                >
+                  Nuovo
+                </button>
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-[var(--border)] bg-white p-4">
               <h3 className="text-lg font-semibold">Ostacoli inseriti</h3>
               <p className="mt-1 text-sm text-[var(--muted)]">
                 {selectedSurfaceLabel}
@@ -441,7 +424,7 @@ export function OstacoliStep() {
                   Nessun ostacolo inserito su questa falda.
                 </p>
               ) : (
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 space-y-2">
                   {selectedSurface.obstacles.map((obstacle, index) => (
                     <div
                       key={`${obstacle.obstacle_id}-${index}`}
@@ -452,9 +435,7 @@ export function OstacoliStep() {
                       </p>
                       <p className="mt-1 text-[var(--muted)]">
                         {getObstacleTypeLabel(obstacle.type)} -{" "}
-                        {getObstacleShapeLabel(obstacle.shape)}
-                      </p>
-                      <p className="mt-1 text-[var(--muted)]">
+                        {getObstacleShapeLabel(obstacle.shape)} -{" "}
                         {getObstaclePositionSummary(obstacle, selectedSurface)}
                       </p>
                       <p
@@ -468,11 +449,11 @@ export function OstacoliStep() {
                         {validaOstacoloDentroFalda(selectedSurface, obstacle)
                           .valido
                           ? "Dentro la falda"
-                          : "Fuori area o margine non valido"}
+                          : "Da verificare"}
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
-                          className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white"
+                          className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-slate-950"
                           type="button"
                           onClick={() => startEditObstacle(obstacle)}
                         >
@@ -491,7 +472,7 @@ export function OstacoliStep() {
                 </div>
               )}
             </section>
-          </aside>
+          </div>
         </div>
       )}
     </div>
@@ -521,7 +502,6 @@ function NumberField({ label, value, onChange }: NumberFieldProps) {
 }
 
 type ObstaclePreviewProps = {
-  draft: ObstacleDraft;
   draftObstacle: ObstacleData | null;
   geometryValid: boolean;
   savedObstacles: ObstacleData[];
@@ -530,7 +510,6 @@ type ObstaclePreviewProps = {
 };
 
 function ObstaclePreview({
-  draft,
   draftObstacle,
   geometryValid,
   savedObstacles,
@@ -539,22 +518,25 @@ function ObstaclePreview({
 }: ObstaclePreviewProps) {
   const falda = creaPoligonoFalda(surface);
   const bounds = getPoligonoBounds(falda);
+  const hasDraft = Boolean(draftObstacle);
 
   return (
-    <section className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <p className="mt-1 text-sm text-[var(--muted)]">{surface.name}</p>
+    <section className="rounded-lg border border-[var(--border)] bg-[color:rgba(12,27,24,0.96)] p-3 shadow-xl shadow-black/25 backdrop-blur">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-semibold">{title}</h3>
+          <p className="mt-0.5 truncate text-xs text-[var(--muted)]">
+            {surface.name}
+          </p>
         </div>
         <span
-          className={`rounded-lg px-2 py-1 text-xs font-semibold ${
+          className={`shrink-0 rounded-lg px-2 py-1 text-xs font-semibold ${
             geometryValid
               ? "bg-emerald-100 text-emerald-800"
               : "bg-red-100 text-red-800"
           }`}
         >
-          {geometryValid ? "Valido" : "Da correggere"}
+          {hasDraft ? (geometryValid ? "Valido" : "Da correggere") : "Compila"}
         </span>
       </div>
 
@@ -565,32 +547,6 @@ function ObstaclePreview({
         savedObstacles={savedObstacles}
         surface={surface}
       />
-
-      <dl className="hidden">
-        <div>
-          <dt className="text-[var(--muted)]">Falda</dt>
-          <dd className="font-medium">{surface.name}</dd>
-        </div>
-        <div>
-          <dt className="text-[var(--muted)]">Riferimento posizione</dt>
-          <dd className="font-medium">{getPositionModeLabel(surface)}</dd>
-        </div>
-        <div>
-          <dt className="text-[var(--muted)]">Ostacolo</dt>
-          <dd className="font-medium">
-            {draft.obstacle_id || "Nome non indicato"} -{" "}
-            {getObstacleShapeLabel(draft.shape)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[var(--muted)]">Misure</dt>
-          <dd className="font-medium">{getDraftDimensionsSummary(draft)}</dd>
-        </div>
-        <div>
-          <dt className="text-[var(--muted)]">Posizione</dt>
-          <dd className="font-medium">{getDraftPositionSummary(draft, surface)}</dd>
-        </div>
-      </dl>
     </section>
   );
 }
@@ -611,15 +567,15 @@ function GeometryPreviewSvg({
   surface,
 }: GeometryPreviewSvgProps) {
   const viewBoxWidth = 320;
-  const viewBoxHeight = 240;
-  const padding = 20;
+  const viewBoxHeight = 220;
+  const padding = 18;
   const mapPoint = createSvgPointMapper(bounds, viewBoxWidth, viewBoxHeight, padding);
   const faldaPoints = falda.map(mapPoint).map(toSvgPoint).join(" ");
 
   return (
     <svg
-      aria-label="Preview geometrica falda e ostacoli"
-      className="mt-4 h-auto w-full rounded-lg border border-[var(--border)] bg-white"
+      aria-label="Preview falda e ostacoli"
+      className="mt-2 h-auto max-h-[34vh] w-full rounded-lg border border-[var(--border)] bg-white xl:max-h-none"
       role="img"
       viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
     >
@@ -630,9 +586,9 @@ function GeometryPreviewSvg({
         strokeWidth="2"
       />
 
-      {savedObstacles.map((obstacle) => (
+      {savedObstacles.map((obstacle, index) => (
         <ObstacleSvg
-          key={obstacle.obstacle_id}
+          key={`${obstacle.obstacle_id}-${index}`}
           mapPoint={mapPoint}
           obstacle={obstacle}
           surface={surface}
@@ -708,8 +664,6 @@ function ObstacleSvg({ mapPoint, obstacle, surface, tone }: ObstacleSvgProps) {
     x_cm: geometry.center.x_cm + geometry.expanded_radius_cm,
     y_cm: geometry.center.y_cm,
   });
-  const radius = Math.abs(radiusPoint.x_cm - center.x_cm);
-  const expandedRadius = Math.abs(expandedRadiusPoint.x_cm - center.x_cm);
 
   return (
     <g>
@@ -717,7 +671,7 @@ function ObstacleSvg({ mapPoint, obstacle, surface, tone }: ObstacleSvgProps) {
         cx={center.x_cm}
         cy={center.y_cm}
         fill="none"
-        r={expandedRadius}
+        r={Math.abs(expandedRadiusPoint.x_cm - center.x_cm)}
         stroke={strokeColor}
         strokeDasharray="4 3"
         strokeWidth="1.5"
@@ -727,7 +681,7 @@ function ObstacleSvg({ mapPoint, obstacle, surface, tone }: ObstacleSvgProps) {
         cy={center.y_cm}
         fill={fillColor}
         fillOpacity="0.85"
-        r={radius}
+        r={Math.abs(radiusPoint.x_cm - center.x_cm)}
         stroke={strokeColor}
         strokeWidth="2"
       />
@@ -778,7 +732,8 @@ function createObstacleFromDraft(
   surface: SurfaceData,
 ): ObstacleData {
   const position = createPositionFromDraft(draft, surface);
-  const obstacleId = draft.obstacle_id.trim() || getAutoObstacleName(draft.type, surface);
+  const obstacleId =
+    draft.obstacle_id.trim() || getAutoObstacleName(draft.type, surface);
 
   if (draft.shape === "rect") {
     return {
@@ -827,25 +782,25 @@ function createPositionFromDraft(
 function validateObstacleDraft(
   draft: ObstacleDraft,
   surface: SurfaceData,
-): ObstacleFormErrors & { baseFieldsValid: boolean } {
+): { errors: string[]; baseFieldsValid: boolean } {
   const errors: string[] = [];
 
   if (!isPositiveDraftNumber(draft.safety_margin_cm)) {
-    errors.push("Margine di sicurezza obbligatorio e maggiore di zero.");
+    errors.push("Margine obbligatorio e maggiore di zero.");
   }
 
   if (draft.shape === "rect") {
     if (!isPositiveDraftNumber(draft.width_cm)) {
-      errors.push("Larghezza ostacolo obbligatoria e maggiore di zero.");
+      errors.push("Larghezza obbligatoria e maggiore di zero.");
     }
 
     if (!isPositiveDraftNumber(draft.height_cm)) {
-      errors.push("Altezza ostacolo obbligatoria e maggiore di zero.");
+      errors.push("Altezza obbligatoria e maggiore di zero.");
     }
   }
 
   if (draft.shape === "circle" && !isPositiveDraftNumber(draft.diameter_cm)) {
-    errors.push("Diametro ostacolo obbligatorio e maggiore di zero.");
+    errors.push("Diametro obbligatorio e maggiore di zero.");
   }
 
   if (surface.shape === "triangle") {
@@ -902,14 +857,6 @@ function readNonNegativeNumber(value: string): NumberDraftValue {
   return numericValue;
 }
 
-function getPositionModeLabel(surface: SurfaceData): string {
-  if (surface.shape === "triangle") {
-    return "Angolo base destra + altezza H";
-  }
-
-  return "Base + lato sinistro";
-}
-
 function getObstacleTypeLabel(type: ObstacleType): string {
   return (
     OBSTACLE_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type
@@ -929,12 +876,11 @@ function getObstacleDisplayName(obstacle: ObstacleData, index: number): string {
 }
 
 function getAutoObstacleName(type: ObstacleType, surface: SurfaceData): string {
-  const baseLabel = getObstacleTypeLabel(type);
   const sameTypeCount = surface.obstacles.filter(
     (obstacle) => obstacle.type === type,
   ).length;
 
-  return `${baseLabel} ${sameTypeCount + 1}`;
+  return `${getObstacleTypeLabel(type)} ${sameTypeCount + 1}`;
 }
 
 function getSurfaceLabel(surface: SurfaceData, index: number): string {
@@ -949,54 +895,6 @@ function getSurfaceLabel(surface: SurfaceData, index: number): string {
   return `${baseLabel} - ${surfaceName}`;
 }
 
-function getSurfaceShapeLabel(surface: SurfaceData): string {
-  switch (surface.shape) {
-    case "rectangular":
-      return "Rettangolare";
-    case "trapezoid":
-      return "Trapezoidale";
-    case "triangle":
-      return "Triangolare";
-    case "guided_quad":
-      return "Quadrilatero guidato";
-    default:
-      return "Falda";
-  }
-}
-
-function getDraftDimensionsSummary(draft: ObstacleDraft): string {
-  if (draft.shape === "rect") {
-    return `${formatDraftNumber(draft.width_cm)} x ${formatDraftNumber(
-      draft.height_cm,
-    )} cm, margine ${formatDraftNumber(draft.safety_margin_cm)} cm`;
-  }
-
-  return `Diametro ${formatDraftNumber(
-    draft.diameter_cm,
-  )} cm, margine ${formatDraftNumber(draft.safety_margin_cm)} cm`;
-}
-
-function getDraftPositionSummary(
-  draft: ObstacleDraft,
-  surface: SurfaceData,
-): string {
-  if (surface.shape === "triangle") {
-    return `Centro: distanza dall'angolo destro ${formatDraftNumber(
-      draft.distance_from_base_right_corner_cm,
-    )} cm, altezza H ${formatDraftNumber(draft.height_from_base_cm)} cm`;
-  }
-
-  return `Centro: distanza dalla base ${formatDraftNumber(
-    draft.distance_from_base_cm,
-  )} cm, distanza dal lato sinistro ${formatDraftNumber(
-    draft.distance_from_left_cm,
-  )} cm`;
-}
-
-function formatDraftNumber(value: NumberDraftValue): string {
-  return value === "" ? "non indicato" : String(value);
-}
-
 function getObstaclePositionSummary(
   obstacle: ObstacleData,
   surface: SurfaceData,
@@ -1005,19 +903,19 @@ function getObstaclePositionSummary(
     const position = obstacle.position;
 
     if ("distance_from_base_right_corner_cm" in position) {
-      return `Centro: angolo destro base ${position.distance_from_base_right_corner_cm} cm, altezza H ${position.height_from_base_cm} cm`;
+      return `angolo base ${position.distance_from_base_right_corner_cm} cm, H ${position.height_from_base_cm} cm`;
     }
 
-    return "Posizione triangolare da verificare.";
+    return "posizione da verificare";
   }
 
   const position = obstacle.position;
 
   if ("distance_from_base_cm" in position) {
-    return `Centro: base ${position.distance_from_base_cm} cm, lato sinistro ${position.distance_from_left_cm} cm`;
+    return `base ${position.distance_from_base_cm} cm, lato ${position.distance_from_left_cm} cm`;
   }
 
-  return "Posizione da verificare.";
+  return "posizione da verificare";
 }
 
 function createSvgPointMapper(

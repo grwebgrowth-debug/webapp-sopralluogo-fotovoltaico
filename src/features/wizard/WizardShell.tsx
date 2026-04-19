@@ -29,6 +29,23 @@ function WizardShellContent() {
   const canGoBack = currentStepNumber > 1;
   const canGoForward = currentStepNumber < WIZARD_STEPS.length;
   const stepValidation = validateWizardStep(state, state.currentStepId);
+  const isLayoutStep = state.currentStepId === "layout_moduli";
+  const layoutAlreadyCalculated = Boolean(state.preliminary_layout);
+  const canCalculateLayout =
+    state.panel_technical_data.width_cm > 0 &&
+    state.panel_technical_data.height_cm > 0 &&
+    state.panel_technical_data.power_w > 0 &&
+    state.roof.surfaces.length > 0;
+  const primaryLabel =
+    isLayoutStep && !layoutAlreadyCalculated
+      ? "Calcola layout"
+      : canGoForward
+        ? "Continua"
+        : "Completato";
+  const primaryDisabled =
+    isLayoutStep && !layoutAlreadyCalculated
+      ? !canCalculateLayout
+      : !canGoForward || !stepValidation.valid;
 
   function handleGoForward() {
     if (!stepValidation.valid) {
@@ -38,19 +55,29 @@ function WizardShellContent() {
     actions.vaiAvanti();
   }
 
+  function handlePrimaryAction() {
+    if (isLayoutStep && !layoutAlreadyCalculated) {
+      window.dispatchEvent(new CustomEvent("wizard:calculate-layout"));
+      return;
+    }
+
+    handleGoForward();
+  }
+
   return (
-    <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 pb-28 shadow-2xl shadow-black/20 sm:p-6 sm:pb-6">
-        <div className="mb-5 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-          <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-            Step {currentStepNumber} di {WIZARD_STEPS.length}
-          </p>
-          <h2 className="mt-1 text-xl font-semibold">
+    <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 pb-20 shadow-2xl shadow-black/20 sm:p-5 sm:pb-5">
+        <StepProgress
+          actions={actions}
+          completedStepIds={state.completedStepIds}
+          currentStepId={state.currentStepId}
+          currentStepNumber={currentStepNumber}
+        />
+
+        <div className="mb-4 mt-3">
+          <h2 className="text-xl font-semibold">
             {currentStep?.titolo ?? "Sopralluogo"}
           </h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-            {currentStep?.descrizione ?? "Compila i dati del sopralluogo."}
-          </p>
         </div>
 
         {renderCurrentStep(state.currentStepId)}
@@ -68,9 +95,9 @@ function WizardShellContent() {
           </div>
         )}
 
-        <div className="fixed inset-x-0 bottom-0 z-20 flex gap-3 border-t border-[var(--border)] bg-[color:rgba(16,32,29,0.96)] p-4 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:mt-8 sm:flex-wrap sm:border-t sm:bg-transparent sm:p-0 sm:pt-5 sm:shadow-none">
+        <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-[var(--border)] bg-[color:rgba(16,32,29,0.96)] px-3 py-2.5 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:mt-6 sm:flex-wrap sm:border-t sm:bg-transparent sm:p-0 sm:pt-4 sm:shadow-none">
           <button
-            className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:py-2"
+            className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
             disabled={!canGoBack}
             type="button"
             onClick={actions.vaiIndietro}
@@ -78,79 +105,17 @@ function WizardShellContent() {
             Indietro
           </button>
           <button
-            className="flex-1 rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:py-2"
-            disabled={!canGoForward || !stepValidation.valid}
+            className="flex-1 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+            disabled={primaryDisabled}
             type="button"
-            onClick={handleGoForward}
+            onClick={handlePrimaryAction}
           >
-            {canGoForward ? "Continua" : "Completato"}
+            {primaryLabel}
           </button>
         </div>
       </div>
 
-      <aside className="space-y-5">
-        <div className="hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 lg:block">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-              Percorso
-            </p>
-            <p className="text-xs text-[var(--muted)]">
-              {currentStepNumber}/{WIZARD_STEPS.length}
-            </p>
-          </div>
-          <div className="space-y-2">
-            {WIZARD_STEPS.map((step) => {
-              const active = step.id === state.currentStepId;
-              const pastStep = step.numero < currentStepNumber;
-              const completedStep = state.completedStepIds.includes(step.id);
-              const selectable = active || pastStep || completedStep;
-              const statusLabel = active
-                ? "Corrente"
-                : pastStep || completedStep
-                  ? "Completato"
-                  : "Da fare";
-
-              return (
-                <button
-                  key={step.id}
-                  className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition ${
-                    active
-                      ? "border-[var(--accent)] bg-[color:rgba(20,184,166,0.12)]"
-                      : pastStep || completedStep
-                        ? "border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--accent)]"
-                        : "border-[var(--border)] bg-[var(--surface-soft)]"
-                  } disabled:cursor-not-allowed disabled:opacity-60`}
-                  disabled={!selectable}
-                  type="button"
-                  onClick={() => actions.cambiaStep(step.id)}
-                >
-                  <span className="flex items-center gap-3">
-                    <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
-                        active
-                          ? "border-[var(--accent)] text-[var(--accent)]"
-                          : pastStep || completedStep
-                            ? "border-[var(--success)] text-[var(--success)]"
-                            : "border-[var(--border)] text-[var(--muted)]"
-                      }`}
-                    >
-                      {step.numero}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate font-semibold">
-                        {step.titolo}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-[var(--muted)]">
-                        {statusLabel}
-                      </span>
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
+      <aside className="min-w-0 space-y-4">
         <details className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 lg:hidden">
           <summary className="cursor-pointer text-sm font-semibold">
             Sintesi sopralluogo
@@ -166,6 +131,59 @@ function WizardShellContent() {
         </div>
       </aside>
     </section>
+  );
+}
+
+type StepProgressProps = {
+  actions: ReturnType<typeof useWizard>["actions"];
+  completedStepIds: WizardStepId[];
+  currentStepId: WizardStepId;
+  currentStepNumber: number;
+};
+
+function StepProgress({
+  actions,
+  completedStepIds,
+  currentStepId,
+  currentStepNumber,
+}: StepProgressProps) {
+  const currentStep = WIZARD_STEPS.find((step) => step.id === currentStepId);
+
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="truncate text-sm font-semibold">
+          Step {currentStepNumber} di {WIZARD_STEPS.length} ·{" "}
+          {currentStep?.titolo ?? "Sopralluogo"}
+        </p>
+      </div>
+      <div className="mt-3 grid grid-cols-7 gap-1.5">
+        {WIZARD_STEPS.map((step) => {
+          const active = step.id === currentStepId;
+          const pastStep = step.numero < currentStepNumber;
+          const completedStep = completedStepIds.includes(step.id);
+          const selectable = active || pastStep || completedStep;
+
+          return (
+            <button
+              key={step.id}
+              aria-label={`Vai a ${step.titolo}`}
+              className={`h-2.5 rounded-full transition ${
+                active
+                  ? "bg-[var(--accent)]"
+                  : pastStep || completedStep
+                    ? "bg-[var(--success)]"
+                    : "bg-[var(--border)]"
+              } disabled:cursor-not-allowed disabled:opacity-60`}
+              disabled={!selectable}
+              title={step.titolo}
+              type="button"
+              onClick={() => actions.cambiaStep(step.id)}
+            />
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

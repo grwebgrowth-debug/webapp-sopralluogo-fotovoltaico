@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { formattaKilowattPicco, formattaWatt } from "@/lib/formatters/units";
 import { calcolaLayoutModuliPreliminare } from "@/lib/geometry/moduleLayout";
 import { creaOstacoloGeometrico } from "@/lib/geometry/obstacles";
@@ -7,7 +8,6 @@ import {
   creaPoligonoFalda,
   getPoligonoBounds,
   type Box2D,
-  type PoligonoFalda,
   type Punto2D,
 } from "@/lib/geometry/roof";
 import type {
@@ -20,11 +20,11 @@ import { useWizard } from "./WizardProvider";
 
 export function LayoutModuliStep() {
   const { actions, state } = useWizard();
+  const resultRef = useRef<HTMLDivElement | null>(null);
   const panelErrors = getPanelTechnicalErrors(state.panel_technical_data);
   const canCalculate =
     panelErrors.length === 0 && state.roof.surfaces.length > 0;
   const layout = state.preliminary_layout;
-  const targetOptions: Array<{ label: string; moduleCount: number }> = [];
 
   function handleCalculate() {
     if (!canCalculate) {
@@ -39,29 +39,36 @@ export function LayoutModuliStep() {
     actions.impostaLayoutPreliminare(nextLayout);
   }
 
-  function handleModeChange(_mode?: "max_modules" | "target_power") {
-    return;
-  }
+  useEffect(() => {
+    function handleExternalCalculate() {
+      handleCalculate();
+    }
 
-  function handleTargetChange(_value?: string) {
-    return;
-  }
+    window.addEventListener("wizard:calculate-layout", handleExternalCalculate);
+    return () => {
+      window.removeEventListener(
+        "wizard:calculate-layout",
+        handleExternalCalculate,
+      );
+    };
+  });
+
+  useEffect(() => {
+    if (layout) {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [layout]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <h2 className="text-2xl font-semibold">Layout preliminare</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
           Calcola una stima dei moduli inseribili sulle falde.
         </p>
-        <p className="hidden">
-          Calcola una stima dei moduli inseribili sulle falde.
-          orientamento verticale e orizzontale e sceglie la soluzione con più
-          moduli. Non è ancora una progettazione esecutiva.
-        </p>
       </div>
 
-      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+      <section className="rounded-lg border border-[var(--border)] bg-white p-4">
         <h3 className="text-lg font-semibold">Sintesi layout</h3>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <SummaryItem
@@ -88,7 +95,7 @@ export function LayoutModuliStep() {
           />
         </dl>
         <button
-          className="mt-5 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!canCalculate}
           type="button"
           onClick={handleCalculate}
@@ -98,7 +105,7 @@ export function LayoutModuliStep() {
       </section>
 
       {panelErrors.length > 0 && (
-        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-5">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
           <h3 className="text-lg font-semibold">Dati pannello mancanti</h3>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
             {panelErrors.map((error) => (
@@ -116,7 +123,7 @@ export function LayoutModuliStep() {
       )}
 
       {state.roof.surfaces.length === 0 && (
-        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-5">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4">
           <h3 className="text-lg font-semibold">Falde mancanti</h3>
           <p className="mt-2 text-sm text-[var(--muted)]">
             Inserisci almeno una falda prima di calcolare il layout.
@@ -124,8 +131,10 @@ export function LayoutModuliStep() {
         </section>
       )}
 
-      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
-        <h3 className="text-lg font-semibold">Dati usati</h3>
+      <details className="rounded-lg border border-[var(--border)] bg-white p-4">
+        <summary className="cursor-pointer text-sm font-semibold">
+          Dati usati
+        </summary>
         <dl className="mt-4 grid gap-3 text-sm md:grid-cols-4">
           <SummaryItem
             label="Larghezza pannello"
@@ -150,77 +159,16 @@ export function LayoutModuliStep() {
             }
           />
         </dl>
-        <div className="hidden">
-          <label className={labelClassName}>
-            Modalità layout
-            <select
-              className={inputClassName}
-              value={state.layout_config.mode}
-              onChange={(event) =>
-                handleModeChange(
-                  event.target.value === "target_power"
-                    ? "target_power"
-                    : "max_modules",
-                )
-              }
-            >
-              <option value="max_modules">
-                Massimo numero di moduli possibile
-              </option>
-              <option value="target_power">Potenza target impianto</option>
-            </select>
-          </label>
-
-          {state.layout_config.mode === "target_power" && (
-            <label className={labelClassName}>
-              Target impianto
-              <select
-                className={inputClassName}
-                value={state.layout_config.target_module_count ?? ""}
-                onChange={(event) => handleTargetChange(event.target.value)}
-              >
-                <option value="">Seleziona un target</option>
-                {targetOptions.map((option) => (
-                  <option
-                    key={option.moduleCount}
-                    value={option.moduleCount}
-                  >
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-        {state.layout_config.mode === "target_power" && (
-          <p className="hidden">
-            Il target è espresso come numero intero di moduli: la potenza viene
-            calcolata usando la potenza del pannello selezionato. Capacità reale
-            selezionato nello step Pannello.
-          </p>
-        )}
-        <button
-          className="hidden"
-          disabled={!canCalculate}
-          type="button"
-          onClick={handleCalculate}
-        >
-          Calcola layout preliminare
-        </button>
-      </section>
+      </details>
 
       {layout ? (
-        <LayoutResultView layout={layout} surfaces={state.roof.surfaces} />
+        <div ref={resultRef}>
+          <LayoutResultView layout={layout} surfaces={state.roof.surfaces} />
+        </div>
       ) : (
-        <>
-        <section className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-5 text-sm leading-6 text-[var(--muted)]">
+        <section className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]">
           Nessun layout calcolato.
         </section>
-        <section className="hidden">
-          Nessun layout calcolato. Completa i dati pannello e premi “Calcola
-          layout preliminare”.
-        </section>
-        </>
       )}
     </div>
   );
@@ -233,14 +181,11 @@ type LayoutResultViewProps = {
 
 function LayoutResultView({ layout, surfaces }: LayoutResultViewProps) {
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
-        <h3 className="text-lg font-semibold">Riepilogo complessivo</h3>
+    <div className="space-y-5">
+      <section className="rounded-lg border border-[var(--border)] bg-white p-4">
+        <h3 className="text-lg font-semibold">Risultato layout</h3>
         <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
-          <SummaryItem
-            label="Modalità layout"
-            value={getLayoutModeLabel(layout.layout_mode)}
-          />
+          <SummaryItem label="Modalita" value={getLayoutModeLabel(layout.layout_mode)} />
           <SummaryItem
             label="Moduli target"
             value={
@@ -257,22 +202,19 @@ function LayoutResultView({ layout, surfaces }: LayoutResultViewProps) {
                 : "Non impostata"
             }
           />
+          <SummaryItem label="Moduli" value={String(layout.total_modules)} />
           <SummaryItem
-            label="Moduli effettivi"
-            value={String(layout.total_modules)}
-          />
-          <SummaryItem
-            label="Potenza effettiva"
+            label="Potenza"
             value={formattaKilowattPicco(layout.total_power_w)}
           />
           <SummaryItem
-            label="Falde utilizzate"
+            label="Falde usate"
             value={String(getUsedSurfacesCount(layout))}
           />
         </dl>
         {layout.layout_mode === "target_power" && (
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-            Disponibilità calcolata: {layout.available_modules} moduli,{" "}
+            Disponibilita calcolata: {layout.available_modules} moduli,{" "}
             {formattaKilowattPicco(layout.available_power_w)}.{" "}
             {layout.target_reached
               ? "Target raggiunto."
@@ -299,28 +241,19 @@ function LayoutResultView({ layout, surfaces }: LayoutResultViewProps) {
         }
 
         return (
-          <section
+          <details
             key={surfaceLayout.surface_id}
-            className="rounded-lg border border-[var(--border)] bg-white p-5"
+            className="rounded-lg border border-[var(--border)] bg-white p-4"
+            open={surfaceLayout.module_count > 0}
           >
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold">
-                {surfaceLayout.surface_name}
-              </h3>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Orientamento scelto: {surfaceLayout.selected_orientation}.
-                Moduli: {surfaceLayout.module_count}. Potenza:{" "}
-                {formattaKilowattPicco(surfaceLayout.total_power_w)}.
-              </p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Superficie utile approssimativa:{" "}
-                {Math.round(surfaceLayout.useful_area_cm2 / 10000)} m².
-                Superficie occupata:{" "}
-                {Math.round(surfaceLayout.occupied_area_cm2 / 10000)} m².
-              </p>
-            </div>
+            <summary className="cursor-pointer text-base font-semibold">
+              {surfaceLayout.surface_name} · {surfaceLayout.module_count} moduli ·{" "}
+              {formattaKilowattPicco(surfaceLayout.total_power_w)}
+            </summary>
 
-            <LayoutPreviewSvg surface={surface} surfaceLayout={surfaceLayout} />
+            <div className="mt-4">
+              <LayoutPreviewSvg surface={surface} surfaceLayout={surfaceLayout} />
+            </div>
 
             {surfaceLayout.messages.length > 0 && (
               <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
@@ -329,16 +262,12 @@ function LayoutResultView({ layout, surfaces }: LayoutResultViewProps) {
                 ))}
               </ul>
             )}
-          </section>
+          </details>
         );
       })}
     </div>
   );
 }
-
-const inputClassName =
-  "mt-2 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]";
-const labelClassName = "text-sm font-medium";
 
 type LayoutPreviewSvgProps = {
   surface: SurfaceData;
@@ -464,36 +393,8 @@ function SummaryItem({ label, value }: SummaryItemProps) {
   );
 }
 
-function buildTargetOptions(
-  panelPowerW: number,
-  availableModules: number,
-  currentTargetModuleCount: number | null,
-): Array<{ label: string; moduleCount: number }> {
-  if (panelPowerW <= 0) {
-    return [];
-  }
-
-  const maxOptionCount = Math.max(
-    availableModules + 6,
-    currentTargetModuleCount ?? 0,
-    12,
-  );
-
-  return Array.from({ length: maxOptionCount }, (_, index) => {
-    const moduleCount = index + 1;
-    const targetPowerW = moduleCount * panelPowerW;
-
-    return {
-      moduleCount,
-      label: `${moduleCount} ${moduleCount === 1 ? "modulo" : "moduli"} · ${formattaKilowattPicco(targetPowerW)}`,
-    };
-  });
-}
-
 function getLayoutModeLabel(mode: PreliminaryModuleLayout["layout_mode"]): string {
-  return mode === "target_power"
-    ? "Potenza target impianto"
-    : "Massimo numero di moduli possibile";
+  return mode === "target_power" ? "Target impianto" : "Massimo moduli";
 }
 
 function getUsedSurfacesCount(layout: PreliminaryModuleLayout): number {
