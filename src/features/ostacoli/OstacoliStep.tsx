@@ -65,6 +65,7 @@ export function OstacoliStep() {
     surfaces[0]?.surface_id ?? "",
   );
   const [editingObstacleId, setEditingObstacleId] = useState<string | null>(null);
+  const [newObstacleMode, setNewObstacleMode] = useState(false);
   const [draft, setDraft] = useState<ObstacleDraft>(() =>
     createEmptyObstacleDraft(),
   );
@@ -113,16 +114,52 @@ export function OstacoliStep() {
     ) {
       setSelectedSurfaceId(selectedSurface.surface_id);
     }
-  }, [selectedSurface, selectedSurfaceId, surfaces]);
+
+    if (
+      selectedSurface &&
+      selectedSurface.obstacles.length > 0 &&
+      !editingObstacleId &&
+      !newObstacleMode &&
+      isEmptyObstacleDraft(draft)
+    ) {
+      openObstacle(selectedSurface.obstacles[selectedSurface.obstacles.length - 1]);
+    }
+  }, [
+    draft,
+    editingObstacleId,
+    newObstacleMode,
+    selectedSurface,
+    selectedSurfaceId,
+    surfaces,
+  ]);
 
   function resetDraft() {
     setEditingObstacleId(null);
+    setNewObstacleMode(true);
     setDraft(createEmptyObstacleDraft());
   }
 
-  function startEditObstacle(obstacle: ObstacleData) {
+  function openObstacle(obstacle: ObstacleData) {
     setEditingObstacleId(obstacle.obstacle_id);
+    setNewObstacleMode(false);
     setDraft(createDraftFromObstacle(obstacle));
+  }
+
+  function startEditObstacle(obstacle: ObstacleData) {
+    openObstacle(obstacle);
+  }
+
+  function selectSurface(surface: SurfaceData) {
+    setSelectedSurfaceId(surface.surface_id);
+
+    const existingObstacle = surface.obstacles[surface.obstacles.length - 1];
+
+    if (existingObstacle) {
+      openObstacle(existingObstacle);
+      return;
+    }
+
+    resetDraft();
   }
 
   function saveObstacle() {
@@ -142,7 +179,7 @@ export function OstacoliStep() {
       actions.aggiungiOstacolo(selectedSurface.surface_id, obstacle);
     }
 
-    resetDraft();
+    openObstacle(obstacle);
   }
 
   function deleteObstacle(obstacleId: string) {
@@ -153,6 +190,16 @@ export function OstacoliStep() {
     actions.eliminaOstacolo(selectedSurface.surface_id, obstacleId);
 
     if (editingObstacleId === obstacleId) {
+      const remainingObstacles = selectedSurface.obstacles.filter(
+        (obstacle) => obstacle.obstacle_id !== obstacleId,
+      );
+      const nextObstacle = remainingObstacles[remainingObstacles.length - 1];
+
+      if (nextObstacle) {
+        openObstacle(nextObstacle);
+        return;
+      }
+
       resetDraft();
     }
   }
@@ -177,38 +224,14 @@ export function OstacoliStep() {
         </p>
       </div>
 
-      <section className="rounded-lg border border-[var(--border)] bg-white p-3">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {surfaces.map((surface, index) => {
-            const selected = surface.surface_id === selectedSurface?.surface_id;
-
-            return (
-              <button
-                key={surface.surface_id}
-                className={`shrink-0 rounded-lg border px-4 py-2.5 text-left text-sm transition ${
-                  selected
-                    ? "border-[var(--accent)] bg-[var(--surface-soft)]"
-                    : "border-[var(--border)] bg-white hover:border-[var(--accent)]"
-                }`}
-                type="button"
-                onClick={() => {
-                  setSelectedSurfaceId(surface.surface_id);
-                  resetDraft();
-                }}
-              >
-                <span className="font-semibold">Falda {index + 1}</span>
-                <span className="mt-0.5 block whitespace-nowrap text-xs text-[var(--muted)]">
-                  {surface.obstacles.length} ostacoli
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
       {selectedSurface && (
         <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]">
-          <aside className="sticky top-0 z-10 order-1 self-start xl:top-5 xl:order-2">
+          <aside className="sticky top-0 z-10 order-1 self-start space-y-2 xl:top-5 xl:order-2">
+            <SurfaceTabs
+              selectedSurfaceId={selectedSurface.surface_id}
+              surfaces={surfaces}
+              onSelect={selectSurface}
+            />
             <ObstaclePreview
               draftObstacle={draftObstacle}
               geometryValid={geometryValidation?.valido ?? false}
@@ -485,6 +508,46 @@ type NumberFieldProps = {
   onChange: (value: string) => void;
 };
 
+type SurfaceTabsProps = {
+  onSelect: (surface: SurfaceData) => void;
+  selectedSurfaceId: string;
+  surfaces: SurfaceData[];
+};
+
+function SurfaceTabs({
+  onSelect,
+  selectedSurfaceId,
+  surfaces,
+}: SurfaceTabsProps) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[color:rgba(12,27,24,0.96)] p-1.5 shadow-xl shadow-black/20 backdrop-blur">
+      <div className="flex gap-1.5 overflow-x-auto">
+        {surfaces.map((surface, index) => {
+          const selected = surface.surface_id === selectedSurfaceId;
+
+          return (
+            <button
+              key={surface.surface_id}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                selected
+                  ? "bg-[var(--accent)] text-slate-950"
+                  : "border border-[var(--border)] bg-white text-[var(--foreground)]"
+              }`}
+              type="button"
+              onClick={() => onSelect(surface)}
+            >
+              Falda {index + 1}
+              <span className="ml-1 font-normal opacity-80">
+                {surface.obstacles.length}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function NumberField({ label, value, onChange }: NumberFieldProps) {
   return (
     <label className={labelClassName}>
@@ -704,6 +767,20 @@ function createEmptyObstacleDraft(): ObstacleDraft {
     distance_from_base_right_corner_cm: "",
     height_from_base_cm: "",
   };
+}
+
+function isEmptyObstacleDraft(draft: ObstacleDraft): boolean {
+  return (
+    !draft.obstacle_id &&
+    draft.safety_margin_cm === "" &&
+    draft.width_cm === "" &&
+    draft.height_cm === "" &&
+    draft.diameter_cm === "" &&
+    draft.distance_from_base_cm === "" &&
+    draft.distance_from_left_cm === "" &&
+    draft.distance_from_base_right_corner_cm === "" &&
+    draft.height_from_base_cm === ""
+  );
 }
 
 function createDraftFromObstacle(obstacle: ObstacleData): ObstacleDraft {

@@ -66,19 +66,13 @@ function WizardShellContent() {
 
   return (
     <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 pb-20 shadow-2xl shadow-black/20 sm:p-5 sm:pb-5">
+      <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 pb-14 shadow-2xl shadow-black/20 sm:p-5 sm:pb-5">
         <StepProgress
           actions={actions}
           completedStepIds={state.completedStepIds}
           currentStepId={state.currentStepId}
           currentStepNumber={currentStepNumber}
         />
-
-        <div className="mb-4 mt-3">
-          <h2 className="text-xl font-semibold">
-            {currentStep?.titolo ?? "Sopralluogo"}
-          </h2>
-        </div>
 
         {renderCurrentStep(state.currentStepId)}
 
@@ -153,7 +147,7 @@ function StepProgress({
     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
       <div className="flex items-center justify-between gap-3">
         <p className="truncate text-sm font-semibold">
-          Step {currentStepNumber} di {WIZARD_STEPS.length} ·{" "}
+          Step {currentStepNumber} di {WIZARD_STEPS.length} -{" "}
           {currentStep?.titolo ?? "Sopralluogo"}
         </p>
       </div>

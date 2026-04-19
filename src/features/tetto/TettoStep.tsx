@@ -174,12 +174,15 @@ export function TettoStep() {
 
       {selectedRoofType && (
         <div className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[var(--muted)]">
-            Falde presenti:{" "}
-            <strong className="text-[var(--foreground)]">
-              {state.roof.surfaces.length}
-            </strong>
-          </p>
+          <div>
+            <p className="text-sm font-semibold">Struttura falde</p>
+            <p className="text-sm text-[var(--muted)]">
+              Falde presenti:{" "}
+              <strong className="text-[var(--foreground)]">
+                {state.roof.surfaces.length}
+              </strong>
+            </p>
+          </div>
           <button
             className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!selectedRoofType || !plannedSurfaceCount}

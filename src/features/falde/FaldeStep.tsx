@@ -37,7 +37,10 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
       return;
     }
 
-    if (!surfaces.some((surface) => surface.surface_id === openSurfaceId)) {
+    if (
+      openSurfaceId &&
+      !surfaces.some((surface) => surface.surface_id === openSurfaceId)
+    ) {
       setOpenSurfaceId(surfaces[0].surface_id);
     }
   }, [openSurfaceId, surfaces]);
@@ -84,20 +87,22 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+        <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold">Falde del tetto</p>
+          <p className="text-sm font-semibold">Elenco falde</p>
           <p className="text-sm text-[var(--muted)]">
             {surfaces.length} {surfaces.length === 1 ? "falda" : "falde"}
           </p>
         </div>
         <button
-          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-slate-950"
+          className="shrink-0 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold"
           type="button"
           onClick={addSurface}
         >
           Aggiungi falda
         </button>
+        </div>
       </div>
 
       {surfaces.length === 0 ? (
@@ -108,6 +113,7 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
         <div className="space-y-3">
           {surfaces.map((surface, index) => {
             const isOpen = surface.surface_id === openSurfaceId;
+            const isComplete = isSurfaceComplete(surface);
 
             return (
               <section
@@ -118,10 +124,18 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
                   <button
                     className="min-w-0 flex-1 text-left"
                     type="button"
-                    onClick={() => setOpenSurfaceId(surface.surface_id)}
+                    onClick={() =>
+                      setOpenSurfaceId(isOpen ? "" : surface.surface_id)
+                    }
                   >
-                    <span className="block text-sm font-semibold">
-                      Falda {index + 1}
+                    <span className="flex items-center gap-2 text-sm font-semibold">
+                      <span
+                        aria-hidden="true"
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          isComplete ? "bg-[var(--success)]" : "bg-[var(--danger)]"
+                        }`}
+                      />
+                      <span>Falda {index + 1}</span>
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-[var(--muted)]">
                       {getSurfacePreview(surface)}
@@ -129,11 +143,13 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
                   </button>
                   <div className="flex shrink-0 gap-2">
                     <button
-                      className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs md:hidden"
+                      className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs"
                       type="button"
-                      onClick={() => setOpenSurfaceId(surface.surface_id)}
+                      onClick={() =>
+                        setOpenSurfaceId(isOpen ? "" : surface.surface_id)
+                      }
                     >
-                      {isOpen ? "Aperta" : "Apri"}
+                      {isOpen ? "Chiudi" : "Apri"}
                     </button>
                     {surfaces.length > 1 && (
                       <button
@@ -147,7 +163,7 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
                   </div>
                 </div>
 
-                <div className={`mt-3 ${isOpen ? "block" : "hidden"} md:block`}>
+                <div className={`mt-3 ${isOpen ? "block" : "hidden"}`}>
                   <div className="grid min-w-0 gap-3 md:grid-cols-2">
                     <label className={labelClassName}>
                       Nome falda *
@@ -413,6 +429,19 @@ function getSurfacePreview(surface: SurfaceData): string {
     surface.obstacles.length === 1 ? "1 ostacolo" : `${surface.obstacles.length} ostacoli`;
 
   return `${surface.name || "Falda"} - ${shapeLabel} - ${orientation} - ${obstaclesLabel}`;
+}
+
+function isSurfaceComplete(surface: SurfaceData): boolean {
+  const dimensionValues = Object.values(surface.dimensions).filter(
+    (value): value is number => typeof value === "number",
+  );
+
+  return (
+    surface.name.trim().length > 0 &&
+    surface.orientation.trim().length > 0 &&
+    dimensionValues.length > 0 &&
+    dimensionValues.every((value) => value > 0)
+  );
 }
 
 function readNonNegativeNumber(value: string): number {
