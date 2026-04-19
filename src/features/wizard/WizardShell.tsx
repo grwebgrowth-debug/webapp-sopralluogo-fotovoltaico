@@ -9,17 +9,13 @@ import { RevisioneStep } from "@/features/revisione/RevisioneStep";
 import { TettoStep } from "@/features/tetto/TettoStep";
 import type { WizardStepId } from "@/types/domain";
 import { LayoutModuliStep } from "./LayoutModuliStep";
-import { WizardProvider, useWizard } from "./WizardProvider";
+import { useWizard } from "./WizardProvider";
 import { validateWizardStep } from "./wizardValidation";
 import { WIZARD_STEPS } from "./wizardSteps";
 import type { WizardSummary } from "./wizardState";
 
 export function WizardShell() {
-  return (
-    <WizardProvider>
-      <WizardShellContent />
-    </WizardProvider>
-  );
+  return <WizardShellContent />;
 }
 
 function WizardShellContent() {

@@ -3,6 +3,7 @@
 import { useState, type ChangeEvent } from "react";
 import type { SurveyPhoto, SurveyPhotoType } from "@/types/photos";
 import { useWizard } from "@/features/wizard/WizardProvider";
+import { createSurveyPhotosFromFiles } from "./photoFactory";
 
 const PHOTO_TYPE_OPTIONS: Array<{ value: SurveyPhotoType; label: string }> = [
   { value: "tetto_panoramica", label: "Tetto panoramica" },
@@ -36,16 +37,7 @@ export function FotoStep() {
       return;
     }
 
-    const nextPhotos: SurveyPhoto[] = files.map((file) => ({
-      photo_id: createPhotoId(),
-      type: "tetto_panoramica",
-      note: "",
-      file_name: file.name,
-      file_size: file.size,
-      mime_type: file.type,
-      added_at: new Date().toISOString(),
-      preview_url: URL.createObjectURL(file),
-    }));
+    const nextPhotos = createSurveyPhotosFromFiles(files);
 
     actions.aggiungiFotoSopralluogo(nextPhotos);
     setSelectedPhotoId(nextPhotos[0].photo_id);
@@ -216,10 +208,6 @@ export function FotoStep() {
 
 export function getSurveyPhotoTypeLabel(type: SurveyPhotoType): string {
   return PHOTO_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type;
-}
-
-function createPhotoId(): string {
-  return `foto_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function formatFileSize(size: number): string {

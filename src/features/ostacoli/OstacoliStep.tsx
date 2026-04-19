@@ -226,7 +226,7 @@ export function OstacoliStep() {
 
       {selectedSurface && (
         <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]">
-          <aside className="sticky top-0 z-10 order-1 self-start space-y-2 xl:top-5 xl:order-2">
+          <aside className="sticky top-[3.75rem] z-30 order-1 self-start space-y-2 xl:top-[4.25rem] xl:order-2">
             <SurfaceTabs
               selectedSurfaceId={selectedSurface.surface_id}
               surfaces={surfaces}

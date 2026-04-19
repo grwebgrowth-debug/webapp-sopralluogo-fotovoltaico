@@ -11,7 +11,7 @@ export function AppShell({ children }: AppShellProps) {
     <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <ProfileThemeBridge />
       <AppHeader />
-      <div className="mx-auto max-w-7xl overflow-x-hidden px-3 py-3 sm:px-5 lg:py-5">
+      <div className="mx-auto max-w-7xl px-3 py-3 sm:px-5 lg:py-5">
         {children}
       </div>
     </main>
