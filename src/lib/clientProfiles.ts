@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ActiveClientProfileSnapshot,
   ClientProfile,
@@ -61,14 +61,20 @@ export function useClientProfiles() {
   const [store, setStore] = useState<ClientProfilesStore>(() =>
     createEmptyClientProfilesStore(),
   );
+  const storeRef = useRef(store);
   const [hydrated, setHydrated] = useState(false);
 
+  const replaceStore = useCallback((nextStore: ClientProfilesStore) => {
+    storeRef.current = nextStore;
+    setStore(nextStore);
+  }, []);
+
   useEffect(() => {
-    setStore(loadClientProfilesStore());
+    replaceStore(loadClientProfilesStore(storeRef.current));
     setHydrated(true);
 
     function handleProfilesChanged() {
-      setStore(loadClientProfilesStore());
+      replaceStore(loadClientProfilesStore(storeRef.current));
     }
 
     window.addEventListener(CLIENT_PROFILES_CHANGED_EVENT, handleProfilesChanged);
@@ -81,12 +87,22 @@ export function useClientProfiles() {
       );
       window.removeEventListener("storage", handleProfilesChanged);
     };
-  }, []);
+  }, [replaceStore]);
 
-  const persistStore = useCallback((nextStore: ClientProfilesStore) => {
-    setStore(nextStore);
-    saveClientProfilesStore(nextStore);
-  }, []);
+  const persistStore = useCallback(
+    (createNextStore: (currentStore: ClientProfilesStore) => ClientProfilesStore) => {
+      const currentStore = loadClientProfilesStore(storeRef.current);
+      const nextStore = normalizeClientProfilesStore(
+        createNextStore(currentStore),
+      );
+
+      replaceStore(nextStore);
+      saveClientProfilesStore(nextStore);
+
+      return nextStore;
+    },
+    [replaceStore],
+  );
 
   const createProfile = useCallback(
     (draft: ClientProfileDraft) => {
@@ -98,24 +114,23 @@ export function useClientProfiles() {
         updated_at: now,
       };
 
-      const nextStore: ClientProfilesStore = {
+      persistStore((currentStore) => ({
         storage_version: CLIENT_PROFILES_STORAGE_VERSION,
-        active_profile_id: store.active_profile_id ?? nextProfile.profile_id,
-        profiles: [...store.profiles, nextProfile],
-      };
+        active_profile_id: nextProfile.profile_id,
+        profiles: [...currentStore.profiles, nextProfile],
+      }));
 
-      persistStore(nextStore);
       return nextProfile;
     },
-    [persistStore, store],
+    [persistStore],
   );
 
   const updateProfile = useCallback(
     (profileId: string, draft: ClientProfileDraft) => {
-      const nextStore: ClientProfilesStore = {
+      persistStore((currentStore) => ({
         storage_version: CLIENT_PROFILES_STORAGE_VERSION,
-        active_profile_id: store.active_profile_id,
-        profiles: store.profiles.map((profile) =>
+        active_profile_id: currentStore.active_profile_id,
+        profiles: currentStore.profiles.map((profile) =>
           profile.profile_id === profileId
             ? {
                 ...profile,
@@ -124,41 +139,50 @@ export function useClientProfiles() {
               }
             : profile,
         ),
-      };
-
-      persistStore(nextStore);
+      }));
     },
-    [persistStore, store],
+    [persistStore],
   );
 
   const deleteProfile = useCallback(
     (profileId: string) => {
-      const profiles = store.profiles.filter(
-        (profile) => profile.profile_id !== profileId,
-      );
-      const activeProfileId =
-        store.active_profile_id === profileId
-          ? profiles[0]?.profile_id ?? null
-          : store.active_profile_id;
+      persistStore((currentStore) => {
+        const profiles = currentStore.profiles.filter(
+          (profile) => profile.profile_id !== profileId,
+        );
+        const activeProfileId =
+          currentStore.active_profile_id === profileId
+            ? profiles[0]?.profile_id ?? null
+            : currentStore.active_profile_id;
 
-      persistStore({
-        storage_version: CLIENT_PROFILES_STORAGE_VERSION,
-        active_profile_id: activeProfileId,
-        profiles,
+        return {
+          storage_version: CLIENT_PROFILES_STORAGE_VERSION,
+          active_profile_id: activeProfileId,
+          profiles,
+        };
       });
     },
-    [persistStore, store],
+    [persistStore],
   );
 
   const selectActiveProfile = useCallback(
     (profileId: string | null) => {
-      persistStore({
-        storage_version: CLIENT_PROFILES_STORAGE_VERSION,
-        active_profile_id: profileId,
-        profiles: store.profiles,
+      persistStore((currentStore) => {
+        if (
+          profileId !== null &&
+          !currentStore.profiles.some((profile) => profile.profile_id === profileId)
+        ) {
+          return currentStore;
+        }
+
+        return {
+          storage_version: CLIENT_PROFILES_STORAGE_VERSION,
+          active_profile_id: profileId,
+          profiles: currentStore.profiles,
+        };
       });
     },
-    [persistStore, store],
+    [persistStore],
   );
 
   const activeProfile = useMemo(
@@ -189,15 +213,23 @@ function createEmptyClientProfilesStore(): ClientProfilesStore {
   };
 }
 
-function loadClientProfilesStore(): ClientProfilesStore {
+function loadClientProfilesStore(
+  fallbackStore = createEmptyClientProfilesStore(),
+): ClientProfilesStore {
   if (!canUseLocalStorage()) {
-    return createEmptyClientProfilesStore();
+    return fallbackStore;
   }
 
-  const rawValue = window.localStorage.getItem(CLIENT_PROFILES_STORAGE_KEY);
+  let rawValue: string | null;
+
+  try {
+    rawValue = window.localStorage.getItem(CLIENT_PROFILES_STORAGE_KEY);
+  } catch {
+    return fallbackStore;
+  }
 
   if (!rawValue) {
-    return createEmptyClientProfilesStore();
+    return fallbackStore;
   }
 
   try {
@@ -212,8 +244,15 @@ function saveClientProfilesStore(store: ClientProfilesStore): void {
     return;
   }
 
-  window.localStorage.setItem(CLIENT_PROFILES_STORAGE_KEY, JSON.stringify(store));
-  window.dispatchEvent(new Event(CLIENT_PROFILES_CHANGED_EVENT));
+  try {
+    window.localStorage.setItem(
+      CLIENT_PROFILES_STORAGE_KEY,
+      JSON.stringify(store),
+    );
+    window.dispatchEvent(new Event(CLIENT_PROFILES_CHANGED_EVENT));
+  } catch {
+    // Se il browser blocca localStorage, manteniamo almeno lo stato in memoria.
+  }
 }
 
 function normalizeClientProfilesStore(value: unknown): ClientProfilesStore {
@@ -295,7 +334,11 @@ function createProfileId(): string {
 }
 
 function canUseLocalStorage(): boolean {
-  return typeof window !== "undefined" && Boolean(window.localStorage);
+  try {
+    return typeof window !== "undefined" && Boolean(window.localStorage);
+  } catch {
+    return false;
+  }
 }
 
 function readStringField(value: unknown, field: string): string {

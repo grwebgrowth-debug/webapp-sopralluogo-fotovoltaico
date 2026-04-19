@@ -81,8 +81,7 @@ export function ProfiliClientiPage() {
     if (editingProfile) {
       updateProfile(editingProfile.profile_id, draft);
     } else {
-      const createdProfile = createProfile(draft);
-      selectActiveProfile(createdProfile.profile_id);
+      createProfile(draft);
     }
 
     startNewProfile();

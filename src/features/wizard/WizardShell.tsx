@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { ClienteStep } from "@/features/cliente/ClienteStep";
 import { FaldeStep } from "@/features/falde/FaldeStep";
 import { FotoStep } from "@/features/foto/FotoStep";
@@ -7,6 +8,7 @@ import { OstacoliStep } from "@/features/ostacoli/OstacoliStep";
 import { PannelloStep } from "@/features/pannelli/PannelloStep";
 import { RevisioneStep } from "@/features/revisione/RevisioneStep";
 import { TettoStep } from "@/features/tetto/TettoStep";
+import type { WizardStepId } from "@/types/domain";
 import { LayoutModuliStep } from "./LayoutModuliStep";
 import { WizardProvider, useWizard } from "./WizardProvider";
 import { validateWizardStep } from "./wizardValidation";
@@ -185,34 +187,25 @@ function WizardShellContent() {
   );
 }
 
-function renderCurrentStep(stepId: string) {
-  switch (stepId) {
-    case "cliente":
-      return <ClienteStep />;
-    case "tetto":
-      return <TettoStep />;
-    case "falde":
-      return <FaldeStep />;
-    case "ostacoli":
-      return <OstacoliStep />;
-    case "pannello":
-      return <PannelloStep />;
-    case "layout_moduli":
-      return <LayoutModuliStep />;
-    case "foto":
-      return <FotoStep />;
-    case "revisione":
-      return <RevisioneStep />;
-    case "invio":
-      return (
-        <StepPlaceholder
-          title="Invio a n8n"
-          description="L'invio reale non è ancora implementato in questa fase."
-        />
-      );
-    default:
-      return null;
-  }
+const STEP_RENDERERS: Record<WizardStepId, () => ReactNode> = {
+  cliente: () => <ClienteStep />,
+  tetto: () => <TettoStep />,
+  falde: () => <FaldeStep />,
+  ostacoli: () => <OstacoliStep />,
+  pannello: () => <PannelloStep />,
+  layout_moduli: () => <LayoutModuliStep />,
+  foto: () => <FotoStep />,
+  revisione: () => <RevisioneStep />,
+  invio: () => (
+    <StepPlaceholder
+      title="Invio a n8n"
+      description="L'invio reale non è ancora implementato in questa fase."
+    />
+  ),
+};
+
+function renderCurrentStep(stepId: WizardStepId) {
+  return STEP_RENDERERS[stepId]();
 }
 
 type StepPlaceholderProps = {
