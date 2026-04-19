@@ -20,6 +20,7 @@ export type ClientProfile = {
   google_sheet_surveys: string;
   google_sheet_price_list: string;
   require_photos_before_submit: boolean;
+  demo_mode: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -44,4 +45,5 @@ export type ActiveClientProfileSnapshot = Pick<
   | "google_sheet_surveys"
   | "google_sheet_price_list"
   | "require_photos_before_submit"
+  | "demo_mode"
 >;

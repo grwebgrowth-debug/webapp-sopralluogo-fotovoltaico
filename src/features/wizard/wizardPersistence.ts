@@ -335,6 +335,7 @@ function normalizeActiveClientProfile(
     require_photos_before_submit: Boolean(
       value.require_photos_before_submit,
     ),
+    demo_mode: Boolean(value.demo_mode),
   };
 }
 

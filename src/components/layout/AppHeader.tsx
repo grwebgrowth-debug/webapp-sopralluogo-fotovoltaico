@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createSurveyPhotosFromFiles } from "@/features/foto/photoFactory";
 import { WizardContext } from "@/features/wizard/WizardProvider";
 import { useClientProfiles } from "@/lib/clientProfiles";
+import { isDemoMode } from "@/lib/runtimeMode";
 
 export function AppHeader() {
   const { activeProfile } = useClientProfiles();
@@ -13,6 +14,7 @@ export function AppHeader() {
   const [preferCamera, setPreferCamera] = useState(false);
   const photosCount = wizard?.state.photos.length ?? 0;
   const isObstaclesStep = wizard?.state.currentStepId === "ostacoli";
+  const demoModeActive = isDemoMode(activeProfile);
 
   useEffect(() => {
     setPreferCamera(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
@@ -45,6 +47,11 @@ export function AppHeader() {
           </h1>
         </div>
         <nav className="flex shrink-0 items-center gap-2">
+          {demoModeActive && (
+            <span className="rounded-lg border border-amber-300/70 bg-amber-200/15 px-2 py-1 text-xs font-semibold text-amber-200">
+              Demo
+            </span>
+          )}
           {wizard && (
             <>
               <button

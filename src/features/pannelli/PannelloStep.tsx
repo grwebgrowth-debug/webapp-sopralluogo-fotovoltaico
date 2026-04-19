@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ApiResult } from "@/lib/api/n8n";
-import { recuperaCatalogoPannelliDaN8n } from "@/lib/api/n8n";
 import { formattaCentimetri, formattaKilowattPicco, formattaWatt } from "@/lib/formatters/units";
+import {
+  getCatalogoPannelli,
+  type ApiResult,
+} from "@/lib/services/surveyService";
 import type { PanelCatalogItem } from "@/types/panels";
 import { useWizard } from "@/features/wizard/WizardProvider";
 
@@ -19,7 +21,7 @@ export function PannelloStep() {
   useEffect(() => {
     let mounted = true;
 
-    recuperaCatalogoPannelliDaN8n().then((result) => {
+    getCatalogoPannelli({ profile: state.active_client_profile }).then((result) => {
       if (mounted) {
         setCatalogResult(result);
       }
@@ -28,7 +30,7 @@ export function PannelloStep() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [state.active_client_profile]);
 
   const catalogItems = catalogResult?.ok
     ? catalogResult.data.filter((item) => item.active)

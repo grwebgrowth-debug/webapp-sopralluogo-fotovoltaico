@@ -63,6 +63,7 @@ export function ProfiliClientiPage() {
       google_sheet_surveys: profile.google_sheet_surveys,
       google_sheet_price_list: profile.google_sheet_price_list,
       require_photos_before_submit: profile.require_photos_before_submit,
+      demo_mode: profile.demo_mode,
     });
     setFormError(null);
   }
@@ -153,6 +154,11 @@ export function ProfiliClientiPage() {
                         Attivo
                       </span>
                     )}
+                    {profile.demo_mode && (
+                      <span className="rounded-lg border border-amber-300/70 bg-amber-200/15 px-2 py-1 text-xs text-amber-200">
+                        Demo
+                      </span>
+                    )}
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
@@ -193,13 +199,32 @@ export function ProfiliClientiPage() {
             Configurazione cliente
           </h2>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Gli endpoint e gli identificativi Google Sheet sono configurazioni
-            pubbliche o operative. Le integrazioni reali arriveranno in un task
-            successivo.
+            Attiva la demo per mostrare il flusso con dati simulati, oppure
+            prepara le integrazioni live quando saranno disponibili.
           </p>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <label className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm md:col-span-2">
+            <span className="flex items-start gap-3">
+              <input
+                checked={draft.demo_mode}
+                className="mt-1"
+                type="checkbox"
+                onChange={(event) =>
+                  updateDraft("demo_mode", event.target.checked)
+                }
+              />
+              <span>
+                <span className="block font-medium">Modalita demo</span>
+                <span className="mt-1 block text-[var(--muted)]">
+                  La modalita demo usa dati simulati e non invia dati reali a
+                  sistemi esterni.
+                </span>
+              </span>
+            </span>
+          </label>
+
           <TextField
             label="Nome profilo"
             required
@@ -241,40 +266,51 @@ export function ProfiliClientiPage() {
               ))}
             </select>
           </label>
-          <TextField
-            label="URL base n8n"
-            value={draft.n8n_base_url}
-            onChange={(value) => updateDraft("n8n_base_url", value)}
-          />
-          <TextField
-            label="Endpoint invio sopralluogo"
-            value={draft.survey_submit_endpoint}
-            onChange={(value) => updateDraft("survey_submit_endpoint", value)}
-          />
-          <TextField
-            label="Endpoint catalogo pannelli"
-            value={draft.panel_catalog_endpoint}
-            onChange={(value) => updateDraft("panel_catalog_endpoint", value)}
-          />
-          <TextField
-            label="ID o URL Google Sheet Catalogo Pannelli"
-            value={draft.google_sheet_panel_catalog}
-            onChange={(value) =>
-              updateDraft("google_sheet_panel_catalog", value)
-            }
-          />
-          <TextField
-            label="ID o URL Google Sheet Sopralluoghi"
-            value={draft.google_sheet_surveys}
-            onChange={(value) => updateDraft("google_sheet_surveys", value)}
-          />
-          <TextField
-            label="ID o URL Google Sheet Listino"
-            value={draft.google_sheet_price_list}
-            onChange={(value) =>
-              updateDraft("google_sheet_price_list", value)
-            }
-          />
+          <details
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 md:col-span-2"
+            open={!draft.demo_mode}
+          >
+            <summary className="cursor-pointer text-sm font-semibold">
+              Integrazioni live
+              {draft.demo_mode ? " - non usate in demo" : ""}
+            </summary>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <TextField
+                label="URL base n8n"
+                value={draft.n8n_base_url}
+                onChange={(value) => updateDraft("n8n_base_url", value)}
+              />
+              <TextField
+                label="Endpoint invio sopralluogo"
+                value={draft.survey_submit_endpoint}
+                onChange={(value) => updateDraft("survey_submit_endpoint", value)}
+              />
+              <TextField
+                label="Endpoint catalogo pannelli"
+                value={draft.panel_catalog_endpoint}
+                onChange={(value) => updateDraft("panel_catalog_endpoint", value)}
+              />
+              <TextField
+                label="ID o URL Google Sheet Catalogo Pannelli"
+                value={draft.google_sheet_panel_catalog}
+                onChange={(value) =>
+                  updateDraft("google_sheet_panel_catalog", value)
+                }
+              />
+              <TextField
+                label="ID o URL Google Sheet Sopralluoghi"
+                value={draft.google_sheet_surveys}
+                onChange={(value) => updateDraft("google_sheet_surveys", value)}
+              />
+              <TextField
+                label="ID o URL Google Sheet Listino"
+                value={draft.google_sheet_price_list}
+                onChange={(value) =>
+                  updateDraft("google_sheet_price_list", value)
+                }
+              />
+            </div>
+          </details>
           <label className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm">
             <span className="flex items-start gap-3">
               <input

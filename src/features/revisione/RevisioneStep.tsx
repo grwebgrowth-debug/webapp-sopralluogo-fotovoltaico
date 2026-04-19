@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { ObstacleType, RoofType, SurfaceShape, WizardStepId } from "@/types/domain";
 import { getSurveyPhotoTypeLabel } from "@/features/foto/FotoStep";
-import { inviaSopralluogoAN8n } from "@/lib/api/n8n";
 import { formattaKilowattPicco } from "@/lib/formatters/units";
+import { salvaSopralluogo } from "@/lib/services/surveyService";
 import { useWizard } from "@/features/wizard/WizardProvider";
 import { costruisciPayloadN8nV1 } from "@/features/wizard/wizardPayload";
 import { validateFinalSurvey } from "@/features/wizard/wizardValidation";
@@ -51,12 +51,14 @@ export function RevisioneStep() {
       message: "Invio in corso...",
     });
 
-    const result = await inviaSopralluogoAN8n(payloadResult.payload);
+    const result = await salvaSopralluogo(payloadResult.payload, {
+      profile: state.active_client_profile,
+    });
 
     if (result.ok) {
       setSubmitState({
         status: "success",
-        message: result.data.message,
+        message: formatSubmitSuccessMessage(result.data),
       });
       return;
     }
@@ -265,6 +267,18 @@ export function RevisioneStep() {
       </section>
     </div>
   );
+}
+
+function formatSubmitSuccessMessage(result: {
+  id_sopralluogo?: string;
+  message: string;
+  preventivo_id?: string;
+}): string {
+  const details = [result.id_sopralluogo, result.preventivo_id]
+    .filter(Boolean)
+    .join(" - ");
+
+  return details ? `${result.message} ${details}` : result.message;
 }
 
 type SummaryTileProps = {

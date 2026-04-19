@@ -34,6 +34,7 @@ export function createEmptyClientProfileDraft(): ClientProfileDraft {
     google_sheet_surveys: "",
     google_sheet_price_list: "",
     require_photos_before_submit: false,
+    demo_mode: false,
   };
 }
 
@@ -54,6 +55,7 @@ export function createClientProfileSnapshot(
     google_sheet_surveys: profile.google_sheet_surveys,
     google_sheet_price_list: profile.google_sheet_price_list,
     require_photos_before_submit: profile.require_photos_before_submit,
+    demo_mode: profile.demo_mode,
   };
 }
 
@@ -303,6 +305,7 @@ function normalizeClientProfile(value: unknown): ClientProfile | null {
       require_photos_before_submit: Boolean(
         value.require_photos_before_submit,
       ),
+      demo_mode: Boolean(value.demo_mode),
     }),
     profile_id: value.profile_id,
     created_at: readStringField(value, "created_at") || new Date().toISOString(),
@@ -326,6 +329,7 @@ function sanitizeClientProfileDraft(
     google_sheet_surveys: draft.google_sheet_surveys.trim(),
     google_sheet_price_list: draft.google_sheet_price_list.trim(),
     require_photos_before_submit: draft.require_photos_before_submit,
+    demo_mode: draft.demo_mode,
   };
 }
 
