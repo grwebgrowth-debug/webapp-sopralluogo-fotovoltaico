@@ -12,6 +12,7 @@ export function AppHeader() {
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [preferCamera, setPreferCamera] = useState(false);
   const photosCount = wizard?.state.photos.length ?? 0;
+  const isObstaclesStep = wizard?.state.currentStepId === "ostacoli";
 
   useEffect(() => {
     setPreferCamera(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
@@ -29,7 +30,11 @@ export function AppHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[color:rgba(16,32,29,0.94)] backdrop-blur">
+    <header
+      className={`z-40 border-b border-[var(--border)] bg-[color:rgba(16,32,29,0.94)] backdrop-blur ${
+        isObstaclesStep ? "relative" : "sticky top-0"
+      }`}
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
         <div className="min-w-0">
           <p className="truncate text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">

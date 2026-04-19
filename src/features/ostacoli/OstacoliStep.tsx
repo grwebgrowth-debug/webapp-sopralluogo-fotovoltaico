@@ -84,6 +84,8 @@ export function OstacoliStep() {
   const selectedSurfaceLabel = selectedSurface
     ? getSurfaceLabel(selectedSurface, selectedSurfaceIndex)
     : "";
+  const selectedSurfaceShortLabel =
+    selectedSurfaceIndex >= 0 ? `Falda ${selectedSurfaceIndex + 1}` : "Falda";
   const formValidation = selectedSurface
     ? validateObstacleDraft(draft, selectedSurface)
     : { errors: [], baseFieldsValid: false };
@@ -225,23 +227,21 @@ export function OstacoliStep() {
       </div>
 
       {selectedSurface && (
-        <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]">
-          <aside className="sticky top-[3.75rem] z-30 order-1 self-start space-y-2 xl:top-[4.25rem] xl:order-2">
-            <SurfaceTabs
-              selectedSurfaceId={selectedSurface.surface_id}
-              surfaces={surfaces}
-              onSelect={selectSurface}
-            />
+        <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]">
+          <aside className="sticky top-0 z-30 order-1 self-start xl:order-2">
             <ObstaclePreview
               draftObstacle={draftObstacle}
               geometryValid={geometryValidation?.valido ?? false}
               savedObstacles={selectedSurface.obstacles}
               surface={selectedSurface}
-              title="Preview falda"
+              surfaceTitle={selectedSurfaceShortLabel}
+              selectedSurfaceId={selectedSurface.surface_id}
+              surfaces={surfaces}
+              onSelect={selectSurface}
             />
           </aside>
 
-          <div className="order-2 min-w-0 space-y-4 xl:order-1">
+          <div className="order-2 min-w-0 space-y-3 xl:order-1">
             <section className="rounded-lg border border-[var(--border)] bg-white p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
@@ -520,30 +520,28 @@ function SurfaceTabs({
   surfaces,
 }: SurfaceTabsProps) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[color:rgba(12,27,24,0.96)] p-1.5 shadow-xl shadow-black/20 backdrop-blur">
-      <div className="flex gap-1.5 overflow-x-auto">
-        {surfaces.map((surface, index) => {
-          const selected = surface.surface_id === selectedSurfaceId;
+    <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+      {surfaces.map((surface, index) => {
+        const selected = surface.surface_id === selectedSurfaceId;
 
-          return (
-            <button
-              key={surface.surface_id}
-              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                selected
-                  ? "bg-[var(--accent)] text-slate-950"
-                  : "border border-[var(--border)] bg-white text-[var(--foreground)]"
-              }`}
-              type="button"
-              onClick={() => onSelect(surface)}
-            >
-              Falda {index + 1}
-              <span className="ml-1 font-normal opacity-80">
-                {surface.obstacles.length}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+        return (
+          <button
+            key={surface.surface_id}
+            className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+              selected
+                ? "bg-[var(--accent)] text-slate-950"
+                : "border border-[var(--border)] bg-white text-[var(--foreground)]"
+            }`}
+            type="button"
+            onClick={() => onSelect(surface)}
+          >
+            Falda {index + 1}
+            <span className="ml-1 font-normal opacity-80">
+              {surface.obstacles.length}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -567,41 +565,54 @@ function NumberField({ label, value, onChange }: NumberFieldProps) {
 type ObstaclePreviewProps = {
   draftObstacle: ObstacleData | null;
   geometryValid: boolean;
+  onSelect: (surface: SurfaceData) => void;
   savedObstacles: ObstacleData[];
+  selectedSurfaceId: string;
   surface: SurfaceData;
-  title: string;
+  surfaceTitle: string;
+  surfaces: SurfaceData[];
 };
 
 function ObstaclePreview({
   draftObstacle,
   geometryValid,
+  onSelect,
   savedObstacles,
+  selectedSurfaceId,
   surface,
-  title,
+  surfaceTitle,
+  surfaces,
 }: ObstaclePreviewProps) {
   const falda = creaPoligonoFalda(surface);
   const bounds = getPoligonoBounds(falda);
   const hasDraft = Boolean(draftObstacle);
+  const statusLabel = hasDraft
+    ? geometryValid
+      ? "Completa"
+      : "Da correggere"
+    : "Compila";
+  const statusClassName = hasDraft
+    ? geometryValid
+      ? "bg-emerald-100 text-emerald-800"
+      : "bg-red-100 text-red-800"
+    : "bg-slate-200 text-slate-800";
 
   return (
-    <section className="rounded-lg border border-[var(--border)] bg-[color:rgba(12,27,24,0.96)] p-3 shadow-xl shadow-black/25 backdrop-blur">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold">{title}</h3>
-          <p className="mt-0.5 truncate text-xs text-[var(--muted)]">
-            {surface.name}
-          </p>
-        </div>
+    <section className="rounded-lg border border-[var(--border)] bg-[color:rgba(12,27,24,0.98)] p-2.5 shadow-xl shadow-black/25">
+      <div className="flex items-center justify-between gap-2">
+        <SurfaceTabs
+          selectedSurfaceId={selectedSurfaceId}
+          surfaces={surfaces}
+          onSelect={onSelect}
+        />
         <span
-          className={`shrink-0 rounded-lg px-2 py-1 text-xs font-semibold ${
-            geometryValid
-              ? "bg-emerald-100 text-emerald-800"
-              : "bg-red-100 text-red-800"
-          }`}
+          className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold ${statusClassName}`}
         >
-          {hasDraft ? (geometryValid ? "Valido" : "Da correggere") : "Compila"}
+          {statusLabel}
         </span>
       </div>
+
+      <h3 className="mt-2 truncate text-sm font-semibold">{surfaceTitle}</h3>
 
       <GeometryPreviewSvg
         bounds={bounds}
@@ -630,15 +641,15 @@ function GeometryPreviewSvg({
   surface,
 }: GeometryPreviewSvgProps) {
   const viewBoxWidth = 320;
-  const viewBoxHeight = 220;
+  const viewBoxHeight = 190;
   const padding = 18;
   const mapPoint = createSvgPointMapper(bounds, viewBoxWidth, viewBoxHeight, padding);
   const faldaPoints = falda.map(mapPoint).map(toSvgPoint).join(" ");
 
   return (
     <svg
-      aria-label="Preview falda e ostacoli"
-      className="mt-2 h-auto max-h-[34vh] w-full rounded-lg border border-[var(--border)] bg-white xl:max-h-none"
+      aria-label="Falda e ostacoli"
+      className="mt-1.5 h-auto max-h-[28vh] w-full rounded-lg border border-[var(--border)] bg-white xl:max-h-none"
       role="img"
       viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
     >
