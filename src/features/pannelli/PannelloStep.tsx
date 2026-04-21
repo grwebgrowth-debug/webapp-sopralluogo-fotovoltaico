@@ -122,9 +122,15 @@ export function PannelloStep() {
         </p>
       </div>
 
-      {catalogItems.length === 0 && (
+      {catalogResult?.ok && catalogItems.length === 0 && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--muted)]">
-          Catalogo pannelli non ancora collegato. Inserisci i dati manualmente.
+          Catalogo live raggiunto, ma nessun pannello e disponibile per questo cliente. Inserisci i dati manualmente.
+        </div>
+      )}
+
+      {catalogResult && !catalogResult.ok && (
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--muted)]">
+          {catalogResult.error}
         </div>
       )}
 

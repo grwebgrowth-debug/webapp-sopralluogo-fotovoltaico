@@ -112,14 +112,19 @@ export async function recuperaCatalogoConfigurazioneDaN8n(
         ...options.filters,
       },
     );
+    const panelCatalog = Array.isArray(data.panel_catalog) ? data.panel_catalog : [];
+    const inverterOptionsRaw = Array.isArray(data.inverter_options)
+      ? data.inverter_options
+      : [];
+    const inverterOptions = dedupeInverterOptions(inverterOptionsRaw);
+
+    logCatalogDiagnostics(panelCatalog.length, inverterOptionsRaw.length, inverterOptions.length);
 
     return {
       ok: true,
       data: {
-        panel_catalog: Array.isArray(data.panel_catalog) ? data.panel_catalog : [],
-        inverter_options: Array.isArray(data.inverter_options)
-          ? data.inverter_options
-          : [],
+        panel_catalog: panelCatalog,
+        inverter_options: inverterOptions,
       },
     };
   } catch (error) {
@@ -333,6 +338,23 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+function dedupeInverterOptions(
+  items: InverterCatalogItem[],
+): InverterCatalogItem[] {
+  const seenKeys = new Set<string>();
+
+  return items.filter((item) => {
+    const key = getInverterCatalogItemKey(item);
+
+    if (seenKeys.has(key)) {
+      return false;
+    }
+
+    seenKeys.add(key);
+    return true;
+  });
+}
+
 function toApiFailure<T>(
   error: unknown,
   fallback: string,
@@ -391,4 +413,29 @@ function isLiveApiFailure(value: unknown): value is LiveApiFailure {
     typeof (value as { message?: unknown }).message === "string" &&
     typeof (value as { error_code?: unknown }).error_code === "string"
   );
+}
+
+function getInverterCatalogItemKey(item: InverterCatalogItem): string {
+  return [
+    item.componente_id,
+    item.codice_articolo ?? "",
+    item.descrizione,
+    item.potenza_nominale_kw ?? "",
+  ].join("::");
+}
+
+function logCatalogDiagnostics(
+  panelCount: number,
+  inverterCount: number,
+  inverterDedupedCount: number,
+): void {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  console.info("[catalogo-live] payload normalizzato", {
+    panelCount,
+    inverterCount,
+    inverterDedupedCount,
+  });
 }

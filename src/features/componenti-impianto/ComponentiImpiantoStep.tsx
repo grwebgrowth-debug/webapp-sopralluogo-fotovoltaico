@@ -53,13 +53,16 @@ export function ComponentiImpiantoStep() {
         : [];
     }
 
+    const selectedInverter = state.system_components.inverter;
+
     if (
-      state.system_components.inverter &&
-      !catalogResult.data.some(
-        (item) => item.componente_id === state.system_components.inverter?.componente_id,
+      selectedInverter &&
+      !catalogResult.data.some((item) =>
+        buildInverterOptionKey(item) ===
+        buildInverterOptionKey(selectedInverter),
       )
     ) {
-      return [...catalogResult.data, state.system_components.inverter];
+      return [...catalogResult.data, selectedInverter];
     }
 
     return catalogResult.data;
@@ -73,7 +76,9 @@ export function ComponentiImpiantoStep() {
 
     actions.aggiornaComponentiImpianto({
       inverter:
-        inverterOptions.find((item) => item.componente_id === value) ?? null,
+        inverterOptions.find(
+          (item) => buildInverterOptionKey(item) === value,
+        ) ?? null,
     });
   }
 
@@ -98,12 +103,19 @@ export function ComponentiImpiantoStep() {
             Inverter *
             <select
               className={inputClassName}
-              value={state.system_components.inverter?.componente_id ?? ""}
+              value={
+                state.system_components.inverter
+                  ? buildInverterOptionKey(state.system_components.inverter)
+                  : ""
+              }
               onChange={(event) => handleInverterChange(event.target.value)}
             >
               <option value="">Seleziona inverter</option>
               {inverterOptions.map((option) => (
-                <option key={option.componente_id} value={option.componente_id}>
+                <option
+                  key={buildInverterOptionKey(option)}
+                  value={buildInverterOptionKey(option)}
+                >
                   {formatInverterOptionLabel(option)}
                 </option>
               ))}
@@ -181,6 +193,15 @@ function formatInverterOptionLabel(option: InverterCatalogItem): string {
   }
 
   return option.descrizione;
+}
+
+function buildInverterOptionKey(option: InverterCatalogItem): string {
+  return [
+    option.componente_id,
+    option.codice_articolo ?? "",
+    option.descrizione,
+    option.potenza_nominale_kw ?? "",
+  ].join("::");
 }
 
 function shouldWaitForLiveProfile(

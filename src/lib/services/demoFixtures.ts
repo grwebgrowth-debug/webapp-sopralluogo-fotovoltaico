@@ -67,14 +67,18 @@ export const DEMO_PANEL_CATALOG: PanelCatalogItem[] = [
 export const DEMO_INVERTER_OPTIONS: InverterCatalogItem[] = [
   {
     componente_id: "inv-demo-fronius-6kw",
+    codice_articolo: "FRONIUS-PRIMO-6.0-1",
     descrizione: "Fronius Primo 6.0-1",
+    sottocategoria: "stringa",
     potenza_nominale_kw: 6,
     brand: "Fronius",
     model: "Primo 6.0-1",
   },
   {
     componente_id: "inv-demo-solaredge-8kw",
+    codice_articolo: "SOLAREDGE-SE8K",
     descrizione: "SolarEdge SE8K",
+    sottocategoria: "stringa",
     potenza_nominale_kw: 8,
     brand: "SolarEdge",
     model: "SE8K",

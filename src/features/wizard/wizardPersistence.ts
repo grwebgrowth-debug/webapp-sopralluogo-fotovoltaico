@@ -627,7 +627,9 @@ function normalizeInverterCatalogItem(
 
   return {
     componente_id: value.componente_id,
+    codice_articolo: readOptionalStringField(value, "codice_articolo"),
     descrizione: value.descrizione,
+    sottocategoria: readOptionalStringField(value, "sottocategoria"),
     potenza_nominale_kw: isNumber(value.potenza_nominale_kw)
       ? value.potenza_nominale_kw
       : null,

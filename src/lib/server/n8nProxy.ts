@@ -194,8 +194,16 @@ async function parseN8nResponse(response: Response): Promise<unknown> {
 
 function normalizeCatalogoResponse(value: unknown): CatalogoPannelliLiveResponse {
   if (Array.isArray(value)) {
+    const container = value
+      .map(extractPrimaryRecord)
+      .find((item) => item && hasKnownPayloadFields(item));
+
+    if (container) {
+      return normalizeCatalogoResponse(container);
+    }
+
     return {
-      panel_catalog: value.filter(isPanelCatalogItem),
+      panel_catalog: value.map(normalizePanelCatalogItem).filter(isDefined),
       inverter_options: [],
     };
   }
@@ -211,14 +219,16 @@ function normalizeCatalogoResponse(value: unknown): CatalogoPannelliLiveResponse
   }
 
   const panelCatalog = Array.isArray(container.panel_catalog)
-    ? container.panel_catalog.filter(isPanelCatalogItem)
+    ? container.panel_catalog.map(normalizePanelCatalogItem).filter(isDefined)
     : Array.isArray(container.items)
-      ? container.items.filter(isPanelCatalogItem)
+      ? container.items.map(normalizePanelCatalogItem).filter(isDefined)
       : Array.isArray(container.data)
-        ? container.data.filter(isPanelCatalogItem)
+        ? container.data.map(normalizePanelCatalogItem).filter(isDefined)
       : [];
   const inverterOptions = Array.isArray(container.inverter_options)
-    ? container.inverter_options.filter(isInverterCatalogItem)
+    ? container.inverter_options
+        .map(normalizeInverterCatalogItem)
+        .filter(isDefined)
     : [];
 
   return {
@@ -368,29 +378,71 @@ function hasKnownPayloadFields(value: Record<string, unknown>): boolean {
   );
 }
 
-function isPanelCatalogItem(value: unknown): value is PanelCatalogItem {
-  return (
-    isRecord(value) &&
-    typeof value.brand === "string" &&
-    typeof value.model === "string" &&
-    typeof value.width_cm === "number" &&
-    typeof value.height_cm === "number" &&
-    typeof value.power_w === "number" &&
-    typeof value.active === "boolean" &&
-    typeof value.allowed_orientation === "string" &&
-    typeof value.notes === "string"
-  );
+function normalizePanelCatalogItem(value: unknown): PanelCatalogItem | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const brand =
+    readOptionalString(value, ["brand", "marca"]) ?? "";
+  const model =
+    readOptionalString(value, ["model", "modello"]) ?? "";
+  const widthCm = readOptionalNumber(value, ["width_cm", "larghezza_cm"]);
+  const heightCm = readOptionalNumber(value, ["height_cm", "altezza_cm"]);
+  const powerW = readOptionalNumber(value, ["power_w", "potenza_w"]);
+  const widthFromMm = readOptionalNumber(value, ["larghezza_mm"]);
+  const heightFromMm = readOptionalNumber(value, ["altezza_mm"]);
+
+  const normalizedWidthCm =
+    widthCm ?? (typeof widthFromMm === "number" ? widthFromMm / 10 : undefined);
+  const normalizedHeightCm =
+    heightCm ?? (typeof heightFromMm === "number" ? heightFromMm / 10 : undefined);
+
+  if (
+    !brand ||
+    !model ||
+    typeof normalizedWidthCm !== "number" ||
+    typeof normalizedHeightCm !== "number" ||
+    typeof powerW !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    panel_id: readOptionalString(value, ["panel_id", "pannello_id"]),
+    item_code: readOptionalString(value, ["item_code", "codice_pannello"]),
+    brand,
+    model,
+    width_cm: normalizedWidthCm,
+    height_cm: normalizedHeightCm,
+    power_w: powerW,
+    active: typeof value.active === "boolean" ? value.active : true,
+    allowed_orientation: normalizeAllowedOrientation(value.allowed_orientation),
+    notes: readOptionalString(value, ["notes", "note"]) ?? "",
+    datasheet_url: readOptionalString(value, ["datasheet_url"]),
+  };
 }
 
-function isInverterCatalogItem(value: unknown): value is InverterCatalogItem {
-  return (
-    isRecord(value) &&
-    typeof value.componente_id === "string" &&
-    typeof value.descrizione === "string" &&
-    (typeof value.potenza_nominale_kw === "number" ||
-      value.potenza_nominale_kw === null ||
-      value.potenza_nominale_kw === undefined)
-  );
+function normalizeInverterCatalogItem(value: unknown): InverterCatalogItem | null {
+  if (
+    !isRecord(value) ||
+    typeof value.componente_id !== "string" ||
+    typeof value.descrizione !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    componente_id: value.componente_id,
+    codice_articolo: readOptionalString(value, ["codice_articolo"]),
+    descrizione: value.descrizione,
+    sottocategoria: readOptionalString(value, ["sottocategoria"]),
+    potenza_nominale_kw:
+      typeof value.potenza_nominale_kw === "number" ? value.potenza_nominale_kw : null,
+    brand: readOptionalString(value, ["brand"]),
+    model: readOptionalString(value, ["model"]),
+    notes: readOptionalString(value, ["notes", "note"]),
+  };
 }
 
 function readFirstString(
@@ -406,7 +458,37 @@ function readFirstString(
   return undefined;
 }
 
+function readOptionalString(
+  value: Record<string, unknown>,
+  fields: string[],
+): string | undefined {
+  for (const field of fields) {
+    if (typeof value[field] === "string" && value[field].trim().length > 0) {
+      return value[field];
+    }
+  }
+
+  return undefined;
+}
+
 function readOptionalNumber(
+  value: Record<string, unknown>,
+  fields: string | string[],
+): number | undefined {
+  const fieldList = Array.isArray(fields) ? fields : [fields];
+
+  for (const field of fieldList) {
+    const resolvedValue = readSingleOptionalNumber(value, field);
+
+    if (typeof resolvedValue === "number") {
+      return resolvedValue;
+    }
+  }
+
+  return undefined;
+}
+
+function readSingleOptionalNumber(
   value: Record<string, unknown>,
   field: string,
 ): number | undefined {
@@ -422,8 +504,18 @@ function readOptionalNumber(
   return undefined;
 }
 
+function normalizeAllowedOrientation(value: unknown): PanelCatalogItem["allowed_orientation"] {
+  return value === "verticale" || value === "orizzontale" || value === "entrambi"
+    ? value
+    : "entrambi";
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isDefined<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
 }
 
 function normalizeFetchError(error: unknown): N8nProxyError {
