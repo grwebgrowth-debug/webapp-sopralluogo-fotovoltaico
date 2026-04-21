@@ -10,6 +10,7 @@ export function createSurveyPhotosFromFiles(files: File[]): SurveyPhoto[] {
     mime_type: file.type,
     added_at: new Date().toISOString(),
     preview_url: URL.createObjectURL(file),
+    raw_file: file,
   }));
 }
 

@@ -14,6 +14,7 @@ import type {
   SurfaceModuleLayout,
 } from "@/types/layout";
 import type { PanelTechnicalData } from "@/types/panels";
+import type { InverterCatalogItem } from "@/types/panels";
 import type { SurveyPhoto } from "@/types/photos";
 import {
   CLIENT_THEME_PREFERENCES,
@@ -31,7 +32,6 @@ import type {
   RectangularSurfaceDimensions,
   SurfaceData,
   SystemComponentsData,
-  SystemInverterOption,
   TrapezoidSurfaceDimensions,
   TriangleSurfaceDimensions,
 } from "@/types/survey";
@@ -303,6 +303,8 @@ function normalizeSurveyPhoto(value: unknown): SurveyPhoto | null {
     file_size: readNumberField(value, "file_size"),
     mime_type: readStringField(value, "mime_type"),
     added_at: readStringField(value, "added_at"),
+    preview_url: undefined,
+    raw_file: undefined,
   };
 }
 
@@ -314,7 +316,7 @@ function normalizeSystemComponents(value: unknown): SystemComponentsData {
   const inverterValue = isRecord(value) ? value.inverter : undefined;
 
   return {
-    inverter: isSystemInverterOption(inverterValue) ? inverterValue : "",
+    inverter: normalizeInverterCatalogItem(inverterValue),
     cable_length_m: readNumberField(value, "cable_length_m"),
     technical_notes: readStringField(value, "technical_notes"),
   };
@@ -340,18 +342,6 @@ function normalizeActiveClientProfile(
     client_code: readStringField(value, "client_code"),
     default_technician: readStringField(value, "default_technician"),
     preferred_theme: preferredTheme,
-    n8n_base_url: readStringField(value, "n8n_base_url"),
-    survey_submit_endpoint: readStringField(value, "survey_submit_endpoint"),
-    panel_catalog_endpoint: readStringField(value, "panel_catalog_endpoint"),
-    google_sheet_panel_catalog: readStringField(
-      value,
-      "google_sheet_panel_catalog",
-    ),
-    google_sheet_surveys: readStringField(value, "google_sheet_surveys"),
-    google_sheet_price_list: readStringField(
-      value,
-      "google_sheet_price_list",
-    ),
     require_photos_before_submit: Boolean(
       value.require_photos_before_submit,
     ),
@@ -628,15 +618,23 @@ function isObstacleShape(value: unknown): value is ObstacleData["shape"] {
   return isString(value) && OBSTACLE_SHAPES.includes(value as never);
 }
 
-function isSystemInverterOption(value: unknown): value is SystemInverterOption {
-  return (
-    value === "microinverter" ||
-    value === "inverter_stringa_monofase" ||
-    value === "inverter_stringa_trifase" ||
-    value === "inverter_ibrido" ||
-    value === "ottimizzatori_con_inverter" ||
-    value === "altro"
-  );
+function normalizeInverterCatalogItem(
+  value: unknown,
+): InverterCatalogItem | null {
+  if (!isRecord(value) || !isString(value.componente_id) || !isString(value.descrizione)) {
+    return null;
+  }
+
+  return {
+    componente_id: value.componente_id,
+    descrizione: value.descrizione,
+    potenza_nominale_kw: isNumber(value.potenza_nominale_kw)
+      ? value.potenza_nominale_kw
+      : null,
+    brand: readOptionalStringField(value, "brand"),
+    model: readOptionalStringField(value, "model"),
+    notes: readOptionalStringField(value, "notes"),
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -657,6 +655,10 @@ function isBoolean(value: unknown): value is boolean {
 
 function readStringField(value: unknown, field: string): string {
   return isRecord(value) && isString(value[field]) ? value[field] : "";
+}
+
+function readOptionalStringField(value: unknown, field: string): string | undefined {
+  return isRecord(value) && isString(value[field]) ? value[field] : undefined;
 }
 
 function readNumberField(value: unknown, field: string): number {
@@ -680,6 +682,10 @@ function readNullableString(value: unknown): string | null {
 }
 
 function stripPhotoForStorage(photo: SurveyPhoto): SurveyPhoto {
-  const { preview_url: _previewUrl, ...persistablePhoto } = photo;
+  const {
+    preview_url: _previewUrl,
+    raw_file: _rawFile,
+    ...persistablePhoto
+  } = photo;
   return persistablePhoto;
 }

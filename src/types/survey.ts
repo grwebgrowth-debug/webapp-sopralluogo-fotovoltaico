@@ -5,6 +5,7 @@ import type {
   SurfaceCoverage,
   SurfaceShape,
 } from "./domain";
+import type { InverterCatalogItem } from "./panels";
 
 export type CustomerData = {
   first_name: string;
@@ -143,19 +144,8 @@ export type PanelSelection = {
 
 export type SelezionePannello = PanelSelection;
 
-export const SYSTEM_INVERTER_OPTIONS = [
-  "microinverter",
-  "inverter_stringa_monofase",
-  "inverter_stringa_trifase",
-  "inverter_ibrido",
-  "ottimizzatori_con_inverter",
-  "altro",
-] as const;
-
-export type SystemInverterOption = (typeof SYSTEM_INVERTER_OPTIONS)[number];
-
 export type SystemComponentsData = {
-  inverter: SystemInverterOption | "";
+  inverter: InverterCatalogItem | null;
   cable_length_m: number;
   technical_notes: string;
 };

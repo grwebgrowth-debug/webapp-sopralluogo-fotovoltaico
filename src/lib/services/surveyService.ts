@@ -1,15 +1,18 @@
-import type { PanelCatalogItem } from "@/types/panels";
+import type { InverterCatalogItem, PanelCatalogItem } from "@/types/panels";
 import type { ActiveClientProfileSnapshot } from "@/types/profiles";
+import type { SurveyPhoto } from "@/types/photos";
 import type { N8nSurveyPayload } from "@/types/survey";
 import {
   inviaSopralluogoAN8n,
   recuperaCatalogoPannelliDaN8n,
+  recuperaOpzioniInverterDaN8n,
   type ApiResult,
 } from "@/lib/api/n8n";
 import { resolveRuntimeMode } from "@/lib/runtimeMode";
 import {
   createDemoQuoteId,
   createDemoSurveyId,
+  DEMO_INVERTER_OPTIONS,
   DEMO_PANEL_CATALOG,
 } from "./demoFixtures";
 
@@ -17,6 +20,9 @@ export type { ApiResult } from "@/lib/api/n8n";
 
 export type ServiceOptions = {
   profile: ActiveClientProfileSnapshot | null;
+  photos?: SurveyPhoto[];
+  surveyId?: string;
+  uploadedBy?: string;
 };
 
 export type QuoteResult = {
@@ -28,6 +34,7 @@ export type SaveSurveyResult = {
   id_sopralluogo?: string;
   preventivo_id?: string;
   message: string;
+  uploaded_photo_count?: number;
 };
 
 export async function getCatalogoPannelli(
@@ -41,7 +48,22 @@ export async function getCatalogoPannelli(
   }
 
   return recuperaCatalogoPannelliDaN8n({
-    endpointUrl: options.profile?.panel_catalog_endpoint,
+    slugCliente: options.profile?.client_code,
+  });
+}
+
+export async function getOpzioniInverter(
+  options: ServiceOptions,
+): Promise<ApiResult<InverterCatalogItem[]>> {
+  if (resolveRuntimeMode(options.profile) === "demo") {
+    return {
+      ok: true,
+      data: DEMO_INVERTER_OPTIONS,
+    };
+  }
+
+  return recuperaOpzioniInverterDaN8n({
+    slugCliente: options.profile?.client_code,
   });
 }
 
@@ -61,6 +83,7 @@ export async function salvaSopralluogo(
       data: {
         id_sopralluogo: createDemoSurveyId(payload),
         preventivo_id: quoteResult.data.preventivo_id,
+        uploaded_photo_count: options.photos?.length ?? 0,
         message:
           "Demo completata. Sopralluogo demo registrato correttamente e preventivo pronto per l'elaborazione.",
       },
@@ -68,7 +91,10 @@ export async function salvaSopralluogo(
   }
 
   return inviaSopralluogoAN8n(payload, {
-    endpointUrl: options.profile?.survey_submit_endpoint,
+    slugCliente: options.profile?.client_code,
+    surveyId: options.surveyId,
+    photos: options.photos,
+    uploadedBy: options.uploadedBy,
   });
 }
 

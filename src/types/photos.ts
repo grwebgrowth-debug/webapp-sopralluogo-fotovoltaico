@@ -21,4 +21,5 @@ export type SurveyPhoto = {
   mime_type: string;
   added_at: string;
   preview_url?: string;
+  raw_file?: File;
 };

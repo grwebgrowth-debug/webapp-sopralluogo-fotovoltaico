@@ -11,7 +11,7 @@ import { CLIENT_THEME_PREFERENCES } from "@/types/profiles";
 
 const CLIENT_PROFILES_STORAGE_KEY =
   "sopralluogo_fotovoltaico_v1_client_profiles";
-const CLIENT_PROFILES_STORAGE_VERSION = 1;
+const CLIENT_PROFILES_STORAGE_VERSION = 2;
 const CLIENT_PROFILES_CHANGED_EVENT = "client-profiles-changed";
 
 type ClientProfilesStore = {
@@ -27,12 +27,6 @@ export function createEmptyClientProfileDraft(): ClientProfileDraft {
     client_code: "",
     default_technician: "",
     preferred_theme: "scuro_teal",
-    n8n_base_url: "",
-    survey_submit_endpoint: "",
-    panel_catalog_endpoint: "",
-    google_sheet_panel_catalog: "",
-    google_sheet_surveys: "",
-    google_sheet_price_list: "",
     require_photos_before_submit: false,
     demo_mode: false,
   };
@@ -48,12 +42,6 @@ export function createClientProfileSnapshot(
     client_code: profile.client_code,
     default_technician: profile.default_technician,
     preferred_theme: profile.preferred_theme,
-    n8n_base_url: profile.n8n_base_url,
-    survey_submit_endpoint: profile.survey_submit_endpoint,
-    panel_catalog_endpoint: profile.panel_catalog_endpoint,
-    google_sheet_panel_catalog: profile.google_sheet_panel_catalog,
-    google_sheet_surveys: profile.google_sheet_surveys,
-    google_sheet_price_list: profile.google_sheet_price_list,
     require_photos_before_submit: profile.require_photos_before_submit,
     demo_mode: profile.demo_mode,
   };
@@ -235,7 +223,14 @@ function loadClientProfilesStore(
   }
 
   try {
-    return normalizeClientProfilesStore(JSON.parse(rawValue));
+    const parsedValue = JSON.parse(rawValue);
+    const normalizedStore = normalizeClientProfilesStore(parsedValue);
+
+    if (shouldPersistMigratedStore(parsedValue)) {
+      saveClientProfilesStore(normalizedStore);
+    }
+
+    return normalizedStore;
   } catch {
     return createEmptyClientProfilesStore();
   }
@@ -258,7 +253,10 @@ function saveClientProfilesStore(store: ClientProfilesStore): void {
 }
 
 function normalizeClientProfilesStore(value: unknown): ClientProfilesStore {
-  if (!isRecord(value) || value.storage_version !== CLIENT_PROFILES_STORAGE_VERSION) {
+  if (
+    !isRecord(value) ||
+    (value.storage_version !== 1 && value.storage_version !== CLIENT_PROFILES_STORAGE_VERSION)
+  ) {
     return createEmptyClientProfilesStore();
   }
 
@@ -290,18 +288,6 @@ function normalizeClientProfile(value: unknown): ClientProfile | null {
       client_code: readStringField(value, "client_code"),
       default_technician: readStringField(value, "default_technician"),
       preferred_theme: readThemePreference(value.preferred_theme),
-      n8n_base_url: readStringField(value, "n8n_base_url"),
-      survey_submit_endpoint: readStringField(value, "survey_submit_endpoint"),
-      panel_catalog_endpoint: readStringField(value, "panel_catalog_endpoint"),
-      google_sheet_panel_catalog: readStringField(
-        value,
-        "google_sheet_panel_catalog",
-      ),
-      google_sheet_surveys: readStringField(value, "google_sheet_surveys"),
-      google_sheet_price_list: readStringField(
-        value,
-        "google_sheet_price_list",
-      ),
       require_photos_before_submit: Boolean(
         value.require_photos_before_submit,
       ),
@@ -322,12 +308,6 @@ function sanitizeClientProfileDraft(
     client_code: draft.client_code.trim(),
     default_technician: draft.default_technician.trim(),
     preferred_theme: draft.preferred_theme,
-    n8n_base_url: draft.n8n_base_url.trim(),
-    survey_submit_endpoint: draft.survey_submit_endpoint.trim(),
-    panel_catalog_endpoint: draft.panel_catalog_endpoint.trim(),
-    google_sheet_panel_catalog: draft.google_sheet_panel_catalog.trim(),
-    google_sheet_surveys: draft.google_sheet_surveys.trim(),
-    google_sheet_price_list: draft.google_sheet_price_list.trim(),
     require_photos_before_submit: draft.require_photos_before_submit,
     demo_mode: draft.demo_mode,
   };
@@ -355,6 +335,18 @@ function readThemePreference(value: unknown): ClientThemePreference {
     : "scuro_teal";
 }
 
+function shouldPersistMigratedStore(value: unknown): boolean {
+  if (!isRecord(value) || !Array.isArray(value.profiles)) {
+    return false;
+  }
+
+  if (value.storage_version !== CLIENT_PROFILES_STORAGE_VERSION) {
+    return true;
+  }
+
+  return value.profiles.some(hasDeprecatedProfileFields);
+}
+
 function isClientProfile(value: ClientProfile | null): value is ClientProfile {
   return value !== null;
 }
@@ -365,4 +357,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isString(value: unknown): value is string {
   return typeof value === "string";
+}
+
+function hasDeprecatedProfileFields(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    ("n8n_base_url" in value ||
+      "survey_submit_endpoint" in value ||
+      "panel_catalog_endpoint" in value ||
+      "google_sheet_panel_catalog" in value ||
+      "google_sheet_surveys" in value ||
+      "google_sheet_price_list" in value)
+  );
 }

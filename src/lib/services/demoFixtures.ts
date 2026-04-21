@@ -1,4 +1,4 @@
-import type { PanelCatalogItem } from "@/types/panels";
+import type { InverterCatalogItem, PanelCatalogItem } from "@/types/panels";
 import type { N8nSurveyPayload } from "@/types/survey";
 
 export const DEMO_PANEL_CATALOG: PanelCatalogItem[] = [
@@ -61,6 +61,28 @@ export const DEMO_PANEL_CATALOG: PanelCatalogItem[] = [
     active: true,
     allowed_orientation: "entrambi",
     notes: "Formato leggermente piu alto, utile su falde ampie.",
+  },
+];
+
+export const DEMO_INVERTER_OPTIONS: InverterCatalogItem[] = [
+  {
+    componente_id: "inv-demo-fronius-6kw",
+    descrizione: "Fronius Primo 6.0-1",
+    potenza_nominale_kw: 6,
+    brand: "Fronius",
+    model: "Primo 6.0-1",
+  },
+  {
+    componente_id: "inv-demo-solaredge-8kw",
+    descrizione: "SolarEdge SE8K",
+    potenza_nominale_kw: 8,
+    brand: "SolarEdge",
+    model: "SE8K",
+  },
+  {
+    componente_id: "altro",
+    descrizione: "Altro",
+    potenza_nominale_kw: null,
   },
 ];
 

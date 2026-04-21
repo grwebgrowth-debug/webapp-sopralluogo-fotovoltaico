@@ -195,7 +195,7 @@ export function createSurveyMeta(): SurveyMeta {
 
 export function createEmptySystemComponentsData(): SystemComponentsData {
   return {
-    inverter: "",
+    inverter: null,
     cable_length_m: 0,
     technical_notes: "",
   };

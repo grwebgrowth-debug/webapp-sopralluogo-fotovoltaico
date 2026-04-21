@@ -87,7 +87,7 @@ export function getPayloadErrors(state: WizardState): string[] {
     errors.push("Modello pannello mancante.");
   }
 
-  if (!state.system_components.inverter) {
+  if (state.system_components.inverter === null) {
     errors.push("Inverter mancante.");
   }
 

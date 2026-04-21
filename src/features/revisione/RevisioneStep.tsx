@@ -54,6 +54,9 @@ export function RevisioneStep() {
 
     const result = await salvaSopralluogo(payloadResult.payload, {
       profile: state.active_client_profile,
+      surveyId: state.survey_id,
+      photos: state.photos,
+      uploadedBy: state.inspection.technician,
     });
 
     if (result.ok) {

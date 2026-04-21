@@ -51,12 +51,6 @@ export function ProfiliClientiPage() {
       client_code: profile.client_code,
       default_technician: profile.default_technician,
       preferred_theme: profile.preferred_theme,
-      n8n_base_url: profile.n8n_base_url,
-      survey_submit_endpoint: profile.survey_submit_endpoint,
-      panel_catalog_endpoint: profile.panel_catalog_endpoint,
-      google_sheet_panel_catalog: profile.google_sheet_panel_catalog,
-      google_sheet_surveys: profile.google_sheet_surveys,
-      google_sheet_price_list: profile.google_sheet_price_list,
       require_photos_before_submit: profile.require_photos_before_submit,
       demo_mode: profile.demo_mode,
     });
@@ -194,8 +188,9 @@ export function ProfiliClientiPage() {
             Configurazione cliente
           </h2>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Attiva la demo per mostrare il flusso con dati simulati, oppure
-            prepara le integrazioni live quando saranno disponibili.
+            Attiva la demo per mostrare il flusso con dati simulati. In live il
+            profilo salva solo configurazioni frontend: slug cliente, tema e
+            preferenze operative.
           </p>
         </div>
 
@@ -266,45 +261,14 @@ export function ProfiliClientiPage() {
             open={!draft.demo_mode}
           >
             <summary className="cursor-pointer text-sm font-semibold">
-              Integrazioni live
+              Configurazione live
               {draft.demo_mode ? " - non usate in demo" : ""}
             </summary>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <TextField
-                label="URL base n8n"
-                value={draft.n8n_base_url}
-                onChange={(value) => updateDraft("n8n_base_url", value)}
-              />
-              <TextField
-                label="Endpoint invio sopralluogo"
-                value={draft.survey_submit_endpoint}
-                onChange={(value) => updateDraft("survey_submit_endpoint", value)}
-              />
-              <TextField
-                label="Endpoint catalogo pannelli"
-                value={draft.panel_catalog_endpoint}
-                onChange={(value) => updateDraft("panel_catalog_endpoint", value)}
-              />
-              <TextField
-                label="ID o URL Google Sheet Catalogo Pannelli"
-                value={draft.google_sheet_panel_catalog}
-                onChange={(value) =>
-                  updateDraft("google_sheet_panel_catalog", value)
-                }
-              />
-              <TextField
-                label="ID o URL Google Sheet Sopralluoghi"
-                value={draft.google_sheet_surveys}
-                onChange={(value) => updateDraft("google_sheet_surveys", value)}
-              />
-              <TextField
-                label="ID o URL Google Sheet Listino"
-                value={draft.google_sheet_price_list}
-                onChange={(value) =>
-                  updateDraft("google_sheet_price_list", value)
-                }
-              />
-            </div>
+            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+              Gli URL reali di n8n e gli altri dettagli infrastrutturali live
+              sono configurati solo lato server tramite variabili ambiente.
+              Nel browser non vengono piu salvati endpoint o URL webhook.
+            </p>
           </details>
           <label className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm">
             <span className="flex items-start gap-3">

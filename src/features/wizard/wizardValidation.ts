@@ -101,7 +101,10 @@ export function validateWizardStep(
     }
   }
 
-  if (stepId === "componenti_impianto" && !state.system_components.inverter) {
+  if (
+    stepId === "componenti_impianto" &&
+    state.system_components.inverter === null
+  ) {
     errors.push("Seleziona il tipo di inverter.");
   }
 
