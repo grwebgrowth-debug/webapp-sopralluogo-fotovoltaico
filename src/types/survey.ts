@@ -5,6 +5,7 @@ import type {
   SurfaceCoverage,
   SurfaceShape,
 } from "./domain";
+import type { LayoutCalculationMode } from "./layout";
 import type { InverterCatalogItem } from "./panels";
 
 export type CustomerData = {
@@ -175,6 +176,14 @@ export type SurveySystemComponentsPayload = {
   note_tecniche: string;
 };
 
+export type SurveyLayoutPayload = {
+  modalita_layout: LayoutCalculationMode;
+  target_moduli: number | null;
+  target_kwp: number | null;
+  moduli_calcolati: number;
+  kwp_calcolati: number;
+};
+
 export type SurveyMeta = {
   source: "webapp_sopralluogo_fotovoltaico_v1";
   schema_version: "1.0";
@@ -193,6 +202,7 @@ export type SopralluogoData = {
   inspection: InspectionData;
   roof: RoofData;
   panel_selection: PanelSelection;
+  layout: SurveyLayoutPayload;
   system_components: SystemComponentsData;
   meta: SurveyMeta;
 };
@@ -203,10 +213,12 @@ export type N8nSurveyPayload = {
     inspection: InspectionData;
     falde: SurveySurfacePayload[];
     pannello_selezionato: SurveyPanelPayload;
+    layout: SurveyLayoutPayload;
     componenti_impianto: SurveySystemComponentsPayload;
   };
   roof: RoofData;
   panel_selection: PanelSelection;
+  layout: SurveyLayoutPayload;
   system_components: SystemComponentsData;
   meta: SurveyMeta;
 };
