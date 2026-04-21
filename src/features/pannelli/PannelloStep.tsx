@@ -6,6 +6,7 @@ import {
   getCatalogoPannelli,
   type ApiResult,
 } from "@/lib/services/surveyService";
+import { resolveRuntimeMode } from "@/lib/runtimeMode";
 import type { PanelCatalogItem } from "@/types/panels";
 import { useWizard } from "@/features/wizard/WizardProvider";
 
@@ -14,11 +15,25 @@ const inputClassName =
 const labelClassName = "text-sm font-medium";
 
 export function PannelloStep() {
-  const { actions, state } = useWizard();
+  const { actions, profilesHydrated, state } = useWizard();
   const [catalogResult, setCatalogResult] =
     useState<ApiResult<PanelCatalogItem[]> | null>(null);
 
   useEffect(() => {
+    if (!profilesHydrated) {
+      setCatalogResult(null);
+      return;
+    }
+
+    if (shouldWaitForLiveProfile(state.active_client_profile)) {
+      setCatalogResult({
+        ok: false,
+        reason: "not_configured",
+        error: "Slug cliente non configurato per il recupero del catalogo live.",
+      });
+      return;
+    }
+
     let mounted = true;
 
     getCatalogoPannelli({ profile: state.active_client_profile }).then((result) => {
@@ -30,7 +45,7 @@ export function PannelloStep() {
     return () => {
       mounted = false;
     };
-  }, [state.active_client_profile]);
+  }, [profilesHydrated, state.active_client_profile]);
 
   const catalogItems = catalogResult?.ok
     ? catalogResult.data.filter((item) => item.active)
@@ -371,4 +386,13 @@ function readPositiveNumber(value: string): number {
 
 function formatNumberInput(value: number): string {
   return value > 0 ? String(value) : "";
+}
+
+function shouldWaitForLiveProfile(
+  profile: ReturnType<typeof useWizard>["state"]["active_client_profile"],
+): boolean {
+  return (
+    resolveRuntimeMode(profile) === "live" &&
+    (!profile || !profile.client_code.trim())
+  );
 }

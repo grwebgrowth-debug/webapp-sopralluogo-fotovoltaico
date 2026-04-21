@@ -7,6 +7,8 @@ import type {
   UploadFotoLiveResponse,
 } from "@/types/liveApi";
 import type { InverterCatalogItem, PanelCatalogItem } from "@/types/panels";
+import { getN8nServerConfig } from "./n8nConfig";
+import { N8nProxyError } from "./n8nErrors";
 
 const N8N_PROXY_TIMEOUT_MS = 15000;
 
@@ -21,31 +23,15 @@ type UploadFotoProxyInput = {
   sha256_file?: string;
 };
 
-export class N8nProxyError extends Error {
-  details?: Record<string, unknown>;
-  errorCode: LiveApiErrorCode;
-  status: number;
-
-  constructor(
-    message: string,
-    status = 502,
-    errorCode: LiveApiErrorCode = "upstream_error",
-    details?: Record<string, unknown>,
-  ) {
-    super(message);
-    this.name = "N8nProxyError";
-    this.errorCode = errorCode;
-    this.details = details;
-    this.status = status;
-  }
-}
-
 export async function proxyCatalogoPannelli(
   payload: CatalogoPannelliLiveRequest,
 ): Promise<CatalogoPannelliLiveResponse> {
-  const response = await postJsonToN8n(
-    readRequiredEnv("N8N_WF01_CATALOGO_WEBHOOK_URL"),
-    payload,
+  const config = getN8nServerConfig("catalogo_pannelli");
+  const upstreamUrl = buildCatalogoPannelliUrl(config.workflowUrl, payload);
+  const response = await getJsonFromN8n(
+    upstreamUrl,
+    config.webappSecret,
+    "WF-01",
   );
 
   return normalizeCatalogoResponse(response);
@@ -54,9 +40,12 @@ export async function proxyCatalogoPannelli(
 export async function proxyRicezioneSopralluogo(
   payload: RicezioneSopralluogoLiveRequest,
 ): Promise<RicezioneSopralluogoLiveResponse> {
+  const config = getN8nServerConfig("ricezione_sopralluogo");
   const response = await postJsonToN8n(
-    readRequiredEnv("N8N_WF02_RICEZIONE_WEBHOOK_URL"),
+    config.workflowUrl,
+    config.webappSecret,
     payload,
+    "WF-02",
     payload.idempotency_key,
   );
 
@@ -66,6 +55,7 @@ export async function proxyRicezioneSopralluogo(
 export async function proxyUploadFoto(
   payload: UploadFotoProxyInput,
 ): Promise<UploadFotoLiveResponse> {
+  const config = getN8nServerConfig("upload_foto");
   const formData = new FormData();
 
   formData.set("slug_cliente", payload.slug_cliente);
@@ -87,7 +77,9 @@ export async function proxyUploadFoto(
   }
 
   const response = await postFormDataToN8n(
-    readRequiredEnv("N8N_WF03_UPLOAD_FOTO_WEBHOOK_URL"),
+    config.workflowUrl,
+    config.webappSecret,
+    "WF-03",
     formData,
   );
 
@@ -96,10 +88,14 @@ export async function proxyUploadFoto(
 
 async function postJsonToN8n(
   url: string,
+  webappSecret: string,
   payload: unknown,
+  workflowLabel: string,
   idempotencyKey?: string,
 ): Promise<unknown> {
   let response: Response;
+
+  logUpstreamRequest(workflowLabel, "POST", url, webappSecret);
 
   try {
     response = await fetch(url, {
@@ -107,6 +103,7 @@ async function postJsonToN8n(
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        "X-WEBAPP-SECRET": webappSecret,
         ...(idempotencyKey ? { "X-Idempotency-Key": idempotencyKey } : {}),
       },
       body: JSON.stringify(payload),
@@ -114,29 +111,69 @@ async function postJsonToN8n(
       signal: AbortSignal.timeout(N8N_PROXY_TIMEOUT_MS),
     });
   } catch (error) {
+    logFetchFailedBeforeRequest(workflowLabel, "POST", url, webappSecret, error);
     throw normalizeFetchError(error);
   }
 
+  logUpstreamResponse(workflowLabel, "POST", url, webappSecret, response.status);
+  return parseN8nResponse(response);
+}
+
+async function getJsonFromN8n(
+  url: string,
+  webappSecret: string,
+  workflowLabel: string,
+): Promise<unknown> {
+  let response: Response;
+
+  logUpstreamRequest(workflowLabel, "GET", url, webappSecret);
+
+  try {
+    response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "X-WEBAPP-SECRET": webappSecret,
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(N8N_PROXY_TIMEOUT_MS),
+    });
+  } catch (error) {
+    logFetchFailedBeforeRequest(workflowLabel, "GET", url, webappSecret, error);
+    throw normalizeFetchError(error);
+  }
+
+  logUpstreamResponse(workflowLabel, "GET", url, webappSecret, response.status);
   return parseN8nResponse(response);
 }
 
 async function postFormDataToN8n(
   url: string,
+  webappSecret: string,
+  workflowLabel: string,
   formData: FormData,
 ): Promise<unknown> {
   let response: Response;
 
+  logUpstreamRequest(workflowLabel, "POST", url, webappSecret);
+
   try {
     response = await fetch(url, {
       method: "POST",
+      headers: {
+        Accept: "application/json",
+        "X-WEBAPP-SECRET": webappSecret,
+      },
       body: formData,
       cache: "no-store",
       signal: AbortSignal.timeout(N8N_PROXY_TIMEOUT_MS),
     });
   } catch (error) {
+    logFetchFailedBeforeRequest(workflowLabel, "POST", url, webappSecret, error);
     throw normalizeFetchError(error);
   }
 
+  logUpstreamResponse(workflowLabel, "POST", url, webappSecret, response.status);
   return parseN8nResponse(response);
 }
 
@@ -245,21 +282,6 @@ function normalizeUploadFotoResponse(value: unknown): UploadFotoLiveResponse {
   };
 }
 
-function readRequiredEnv(name: string): string {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new N8nProxyError(
-      `Variabile ambiente mancante: ${name}`,
-      500,
-      "not_configured",
-      { env: name },
-    );
-  }
-
-  return value;
-}
-
 function extractErrorMessage(data: unknown, rawText: string): string {
   const container = extractPrimaryRecord(data);
 
@@ -283,6 +305,29 @@ function tryParseJson(value: string): unknown {
   } catch {
     return null;
   }
+}
+
+function buildCatalogoPannelliUrl(
+  baseUrl: string,
+  payload: CatalogoPannelliLiveRequest,
+): string {
+  const url = new URL(baseUrl);
+
+  url.searchParams.set("slug_cliente", payload.slug_cliente);
+
+  if (payload.marca) {
+    url.searchParams.set("marca", payload.marca);
+  }
+
+  if (typeof payload.potenza_min_w === "number") {
+    url.searchParams.set("potenza_min_w", String(payload.potenza_min_w));
+  }
+
+  if (typeof payload.potenza_max_w === "number") {
+    url.searchParams.set("potenza_max_w", String(payload.potenza_max_w));
+  }
+
+  return url.toString();
 }
 
 function extractPrimaryRecord(value: unknown): Record<string, unknown> | null {
@@ -420,4 +465,47 @@ function mapUpstreamErrorCode(status: number): LiveApiErrorCode {
   }
 
   return "upstream_error";
+}
+
+function logUpstreamRequest(
+  workflowLabel: string,
+  upstreamMethod: "GET" | "POST",
+  upstreamUrl: string,
+  webappSecret: string,
+): void {
+  console.info(`[${workflowLabel}] upstream request`, {
+    upstreamMethod,
+    upstreamUrl,
+    hasSecret: Boolean(webappSecret),
+  });
+}
+
+function logUpstreamResponse(
+  workflowLabel: string,
+  upstreamMethod: "GET" | "POST",
+  upstreamUrl: string,
+  webappSecret: string,
+  status: number,
+): void {
+  console.info(`[${workflowLabel}] upstream response`, {
+    upstreamMethod,
+    upstreamUrl,
+    hasSecret: Boolean(webappSecret),
+    status,
+  });
+}
+
+function logFetchFailedBeforeRequest(
+  workflowLabel: string,
+  upstreamMethod: "GET" | "POST",
+  upstreamUrl: string,
+  webappSecret: string,
+  error: unknown,
+): void {
+  console.error(`[${workflowLabel}] fetch failed before request`, {
+    upstreamMethod,
+    upstreamUrl,
+    hasSecret: Boolean(webappSecret),
+    error: error instanceof Error ? error.message : String(error),
+  });
 }

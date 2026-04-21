@@ -6,6 +6,7 @@ import {
   getOpzioniInverter,
   type ApiResult,
 } from "@/lib/services/surveyService";
+import { resolveRuntimeMode } from "@/lib/runtimeMode";
 import type { InverterCatalogItem } from "@/types/panels";
 
 const inputClassName =
@@ -13,11 +14,25 @@ const inputClassName =
 const labelClassName = "text-sm font-medium";
 
 export function ComponentiImpiantoStep() {
-  const { actions, state } = useWizard();
+  const { actions, profilesHydrated, state } = useWizard();
   const [catalogResult, setCatalogResult] =
     useState<ApiResult<InverterCatalogItem[]> | null>(null);
 
   useEffect(() => {
+    if (!profilesHydrated) {
+      setCatalogResult(null);
+      return;
+    }
+
+    if (shouldWaitForLiveProfile(state.active_client_profile)) {
+      setCatalogResult({
+        ok: false,
+        reason: "not_configured",
+        error: "Slug cliente non configurato per il recupero del catalogo live.",
+      });
+      return;
+    }
+
     let mounted = true;
 
     getOpzioniInverter({ profile: state.active_client_profile }).then((result) => {
@@ -29,7 +44,7 @@ export function ComponentiImpiantoStep() {
     return () => {
       mounted = false;
     };
-  }, [state.active_client_profile]);
+  }, [profilesHydrated, state.active_client_profile]);
 
   const inverterOptions = useMemo(() => {
     if (!catalogResult?.ok) {
@@ -166,4 +181,13 @@ function formatInverterOptionLabel(option: InverterCatalogItem): string {
   }
 
   return option.descrizione;
+}
+
+function shouldWaitForLiveProfile(
+  profile: ReturnType<typeof useWizard>["state"]["active_client_profile"],
+): boolean {
+  return (
+    resolveRuntimeMode(profile) === "live" &&
+    (!profile || !profile.client_code.trim())
+  );
 }

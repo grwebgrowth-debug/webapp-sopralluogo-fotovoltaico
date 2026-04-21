@@ -81,6 +81,7 @@ type WizardContextValue = {
   state: WizardState;
   summary: WizardSummary;
   payloadResult: ReturnType<typeof costruisciPayloadN8nV1>;
+  profilesHydrated: boolean;
   actions: WizardActions;
 };
 
@@ -91,7 +92,7 @@ type WizardProviderProps = {
 };
 
 export function WizardProvider({ children }: WizardProviderProps) {
-  const { activeProfile } = useClientProfiles();
+  const { activeProfile, hydrated: profilesHydrated } = useClientProfiles();
   const [hydrated, setHydrated] = useState(false);
   const [state, dispatch] = useReducer(wizardReducer, undefined, () =>
     createEmptyWizardState(),
@@ -194,9 +195,10 @@ export function WizardProvider({ children }: WizardProviderProps) {
       state,
       summary: getWizardSummary(state),
       payloadResult: costruisciPayloadN8nV1(state),
+      profilesHydrated,
       actions,
     }),
-    [actions, state],
+    [actions, profilesHydrated, state],
   );
 
   return (

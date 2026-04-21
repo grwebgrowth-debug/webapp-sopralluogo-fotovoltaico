@@ -5,7 +5,7 @@ import type {
   LiveApiResponse,
   LiveApiSuccess,
 } from "@/types/liveApi";
-import { N8nProxyError } from "./n8nProxy";
+import { N8nProxyError } from "./n8nErrors";
 
 type ErrorResponseOptions = {
   details?: Record<string, unknown>;
