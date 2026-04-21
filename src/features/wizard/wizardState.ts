@@ -400,13 +400,18 @@ export function impostaPannello(
   panel: PanelSelection,
   technicalData?: PanelTechnicalData,
 ): WizardState {
+  const nextTechnicalData = technicalData ?? state.panel_technical_data;
+
   return touchState({
     ...state,
-    panel_selection: panel,
-    panel_technical_data: technicalData ?? state.panel_technical_data,
+    panel_selection: mergePanelSelectionWithTechnicalData(
+      panel,
+      nextTechnicalData,
+    ),
+    panel_technical_data: nextTechnicalData,
     layout_config: aggiornaPotenzaTargetLayout(
       state.layout_config,
-      technicalData ?? state.panel_technical_data,
+      nextTechnicalData,
     ),
     preliminary_layout: null,
   });
@@ -418,6 +423,10 @@ export function impostaDatiTecniciPannello(
 ): WizardState {
   return touchState({
     ...state,
+    panel_selection: mergePanelSelectionWithTechnicalData(
+      state.panel_selection,
+      technicalData,
+    ),
     panel_technical_data: technicalData,
     layout_config: aggiornaPotenzaTargetLayout(state.layout_config, technicalData),
     preliminary_layout: null,
@@ -666,4 +675,17 @@ function addCompletedStep(
   }
 
   return [...completedStepIds, stepId];
+}
+
+function mergePanelSelectionWithTechnicalData(
+  panel: PanelSelection,
+  technicalData: PanelTechnicalData,
+): PanelSelection {
+  return {
+    ...panel,
+    width_cm: technicalData.width_cm > 0 ? technicalData.width_cm : undefined,
+    height_cm:
+      technicalData.height_cm > 0 ? technicalData.height_cm : undefined,
+    power_w: technicalData.power_w > 0 ? technicalData.power_w : undefined,
+  };
 }

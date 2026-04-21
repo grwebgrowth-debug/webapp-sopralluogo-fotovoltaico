@@ -147,6 +147,9 @@ export function PannelloStep() {
                   onChange={(event) =>
                     actions.impostaPannello(
                       {
+                        ...state.panel_selection,
+                        panel_id: undefined,
+                        item_code: undefined,
                         brand: event.target.value,
                         model: "",
                       },
@@ -173,12 +176,33 @@ export function PannelloStep() {
                 <select
                   className={inputClassName}
                   value={state.panel_selection.model}
-                  onChange={(event) =>
-                    actions.impostaPannello({
-                      brand: state.panel_selection.brand,
-                      model: event.target.value,
-                    })
-                  }
+                  onChange={(event) => {
+                    const nextPanel =
+                      modelOptions.find((item) => item.model === event.target.value) ??
+                      null;
+
+                    actions.impostaPannello(
+                      {
+                        panel_id: nextPanel?.panel_id,
+                        item_code: nextPanel?.item_code,
+                        brand: state.panel_selection.brand,
+                        model: event.target.value,
+                      },
+                      nextPanel
+                        ? {
+                            width_cm: nextPanel.width_cm,
+                            height_cm: nextPanel.height_cm,
+                            power_w: nextPanel.power_w,
+                            source: "catalogo",
+                          }
+                        : {
+                            width_cm: 0,
+                            height_cm: 0,
+                            power_w: 0,
+                            source: null,
+                          },
+                    );
+                  }}
                 >
                   <option value="">Seleziona modello</option>
                   {modelOptions.map((item) => (
@@ -198,6 +222,9 @@ export function PannelloStep() {
                   value={state.panel_selection.brand}
                   onChange={(event) =>
                     actions.impostaPannello({
+                      ...state.panel_selection,
+                      panel_id: undefined,
+                      item_code: undefined,
                       brand: event.target.value,
                       model: state.panel_selection.model,
                     })
@@ -212,6 +239,9 @@ export function PannelloStep() {
                   value={state.panel_selection.model}
                   onChange={(event) =>
                     actions.impostaPannello({
+                      ...state.panel_selection,
+                      panel_id: undefined,
+                      item_code: undefined,
                       brand: state.panel_selection.brand,
                       model: event.target.value,
                     })

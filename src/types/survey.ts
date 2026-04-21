@@ -138,8 +138,13 @@ export type SurfaceData =
 export type Falda = SurfaceData;
 
 export type PanelSelection = {
+  panel_id?: string;
+  item_code?: string;
   brand: string;
   model: string;
+  power_w?: number;
+  width_cm?: number;
+  height_cm?: number;
 };
 
 export type SelezionePannello = PanelSelection;
@@ -148,6 +153,26 @@ export type SystemComponentsData = {
   inverter: InverterCatalogItem | null;
   cable_length_m: number;
   technical_notes: string;
+};
+
+export type SurveySurfacePayload = Omit<SurfaceData, "coverage"> & {
+  copertura: SurfaceData["coverage"];
+};
+
+export type SurveyPanelPayload = {
+  panel_id?: string;
+  item_code?: string;
+  brand: string;
+  model: string;
+  power_w: number;
+  width_cm: number;
+  height_cm: number;
+};
+
+export type SurveySystemComponentsPayload = {
+  inverter: InverterCatalogItem | null;
+  lunghezza_cavi_m: number;
+  note_tecniche: string;
 };
 
 export type SurveyMeta = {
@@ -176,6 +201,9 @@ export type N8nSurveyPayload = {
   survey: {
     customer: CustomerData;
     inspection: InspectionData;
+    falde: SurveySurfacePayload[];
+    pannello_selezionato: SurveyPanelPayload;
+    componenti_impianto: SurveySystemComponentsPayload;
   };
   roof: RoofData;
   panel_selection: PanelSelection;

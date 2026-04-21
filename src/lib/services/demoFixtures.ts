@@ -3,6 +3,8 @@ import type { N8nSurveyPayload } from "@/types/survey";
 
 export const DEMO_PANEL_CATALOG: PanelCatalogItem[] = [
   {
+    panel_id: "PAN-DEMO-001",
+    item_code: "SUNPOWER-P7-435",
     brand: "SunPower",
     model: "Performance 7 435 W",
     width_cm: 113.4,
@@ -13,6 +15,8 @@ export const DEMO_PANEL_CATALOG: PanelCatalogItem[] = [
     notes: "Modulo ad alta efficienza per tetti residenziali.",
   },
   {
+    panel_id: "PAN-DEMO-002",
+    item_code: "JINKO-TIGER-440",
     brand: "Jinko Solar",
     model: "Tiger Neo N-type 440 W",
     width_cm: 113.4,
@@ -23,6 +27,8 @@ export const DEMO_PANEL_CATALOG: PanelCatalogItem[] = [
     notes: "Formato compatto con buona resa in condizioni reali.",
   },
   {
+    panel_id: "PAN-DEMO-003",
+    item_code: "LONGI-HIMO6-430",
     brand: "LONGi",
     model: "Hi-MO 6 Explorer 430 W",
     width_cm: 113.4,
@@ -33,6 +39,8 @@ export const DEMO_PANEL_CATALOG: PanelCatalogItem[] = [
     notes: "Modulo monofacciale per installazioni civili.",
   },
   {
+    panel_id: "PAN-DEMO-004",
+    item_code: "TRINA-VERTEXS-450",
     brand: "Trina Solar",
     model: "Vertex S+ 450 W",
     width_cm: 113.4,
@@ -43,6 +51,8 @@ export const DEMO_PANEL_CATALOG: PanelCatalogItem[] = [
     notes: "Modulo vetro-vetro adatto a layout residenziali.",
   },
   {
+    panel_id: "PAN-DEMO-005",
+    item_code: "REC-ALPHA-RX-470",
     brand: "REC",
     model: "Alpha Pure-RX 470 W",
     width_cm: 120.5,
@@ -53,6 +63,8 @@ export const DEMO_PANEL_CATALOG: PanelCatalogItem[] = [
     notes: "Modulo premium per massimizzare la potenza disponibile.",
   },
   {
+    panel_id: "PAN-DEMO-006",
+    item_code: "CS-TOPHIKU6-455",
     brand: "Canadian Solar",
     model: "TOPHiKu6 455 W",
     width_cm: 113.4,

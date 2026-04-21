@@ -192,8 +192,13 @@ function normalizeInspectionData(value: unknown): InspectionData {
 
 function normalizePanelSelection(value: unknown): PanelSelection {
   return {
+    panel_id: readOptionalStringField(value, "panel_id"),
+    item_code: readOptionalStringField(value, "item_code"),
     brand: readStringField(value, "brand"),
     model: readStringField(value, "model"),
+    power_w: readOptionalNumberField(value, "power_w"),
+    width_cm: readOptionalNumberField(value, "width_cm"),
+    height_cm: readOptionalNumberField(value, "height_cm"),
   };
 }
 
@@ -665,6 +670,13 @@ function readOptionalStringField(value: unknown, field: string): string | undefi
 
 function readNumberField(value: unknown, field: string): number {
   return isRecord(value) && isNumber(value[field]) ? value[field] : 0;
+}
+
+function readOptionalNumberField(
+  value: unknown,
+  field: string,
+): number | undefined {
+  return isRecord(value) && isNumber(value[field]) ? value[field] : undefined;
 }
 
 function readNullablePositiveInteger(value: unknown): number | null {

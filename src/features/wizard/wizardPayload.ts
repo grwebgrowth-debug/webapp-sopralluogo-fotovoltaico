@@ -27,10 +27,34 @@ export function costruisciPayloadN8nV1(
     };
   }
 
+  const surveyFalde = state.roof.surfaces.map((surface) => ({
+    ...surface,
+    copertura: surface.coverage,
+  }));
+  const surveyPannelloSelezionato = {
+    panel_id: state.panel_selection.panel_id,
+    item_code: state.panel_selection.item_code,
+    brand: state.panel_selection.brand,
+    model: state.panel_selection.model,
+    power_w:
+      state.panel_selection.power_w ?? state.panel_technical_data.power_w,
+    width_cm:
+      state.panel_selection.width_cm ?? state.panel_technical_data.width_cm,
+    height_cm:
+      state.panel_selection.height_cm ?? state.panel_technical_data.height_cm,
+  };
+
   const payload: N8nSurveyPayload = {
     survey: {
       customer: state.customer,
       inspection: state.inspection,
+      falde: surveyFalde,
+      pannello_selezionato: surveyPannelloSelezionato,
+      componenti_impianto: {
+        inverter: state.system_components.inverter,
+        lunghezza_cavi_m: state.system_components.cable_length_m,
+        note_tecniche: state.system_components.technical_notes,
+      },
     },
     roof: {
       roof_type: state.roof.roof_type,
