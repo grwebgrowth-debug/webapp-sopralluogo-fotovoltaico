@@ -1,4 +1,10 @@
-import type { ObstacleShape, ObstacleType, RoofType, SurfaceShape } from "./domain";
+import type {
+  ObstacleShape,
+  ObstacleType,
+  RoofType,
+  SurfaceCoverage,
+  SurfaceShape,
+} from "./domain";
 
 export type CustomerData = {
   first_name: string;
@@ -103,6 +109,7 @@ type BaseSurfaceData = {
   name: string;
   shape: SurfaceShape;
   orientation: string;
+  coverage: SurfaceCoverage | "";
   tilt_deg: number;
   edge_clearance_cm: number;
   notes: string;
@@ -136,6 +143,23 @@ export type PanelSelection = {
 
 export type SelezionePannello = PanelSelection;
 
+export const SYSTEM_INVERTER_OPTIONS = [
+  "microinverter",
+  "inverter_stringa_monofase",
+  "inverter_stringa_trifase",
+  "inverter_ibrido",
+  "ottimizzatori_con_inverter",
+  "altro",
+] as const;
+
+export type SystemInverterOption = (typeof SYSTEM_INVERTER_OPTIONS)[number];
+
+export type SystemComponentsData = {
+  inverter: SystemInverterOption | "";
+  cable_length_m: number;
+  technical_notes: string;
+};
+
 export type SurveyMeta = {
   source: "webapp_sopralluogo_fotovoltaico_v1";
   schema_version: "1.0";
@@ -154,6 +178,7 @@ export type SopralluogoData = {
   inspection: InspectionData;
   roof: RoofData;
   panel_selection: PanelSelection;
+  system_components: SystemComponentsData;
   meta: SurveyMeta;
 };
 
@@ -164,6 +189,7 @@ export type N8nSurveyPayload = {
   };
   roof: RoofData;
   panel_selection: PanelSelection;
+  system_components: SystemComponentsData;
   meta: SurveyMeta;
 };
 

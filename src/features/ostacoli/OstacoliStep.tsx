@@ -141,6 +141,16 @@ export function OstacoliStep() {
     setDraft(createEmptyObstacleDraft());
   }
 
+  function appendEmptyObstacle() {
+    if (!selectedSurface) {
+      return;
+    }
+
+    const obstacle = createPlaceholderObstacle(selectedSurface);
+    actions.aggiungiOstacolo(selectedSurface.surface_id, obstacle);
+    openObstacle(obstacle);
+  }
+
   function openObstacle(obstacle: ObstacleData) {
     setEditingObstacleId(obstacle.obstacle_id);
     setNewObstacleMode(false);
@@ -420,7 +430,7 @@ export function OstacoliStep() {
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
-                  className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={validationErrors.length > 0}
                   type="button"
                   onClick={saveObstacle}
@@ -476,7 +486,7 @@ export function OstacoliStep() {
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
-                          className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-slate-950"
+                          className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-foreground)]"
                           type="button"
                           onClick={() => startEditObstacle(obstacle)}
                         >
@@ -494,6 +504,15 @@ export function OstacoliStep() {
                   ))}
                 </div>
               )}
+              <div className="mt-4">
+                <button
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2 text-sm font-semibold"
+                  type="button"
+                  onClick={appendEmptyObstacle}
+                >
+                  + Aggiungi ostacolo
+                </button>
+              </div>
             </section>
           </div>
         </div>
@@ -529,7 +548,7 @@ function SurfaceTabs({
             key={surface.surface_id}
             className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
               selected
-                ? "bg-[var(--accent)] text-slate-950"
+                ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
                 : "border border-[var(--border)] bg-white text-[var(--foreground)]"
             }`}
             type="button"
@@ -598,7 +617,7 @@ function ObstaclePreview({
     : "bg-slate-200 text-slate-800";
 
   return (
-    <section className="rounded-lg border border-[var(--border)] bg-[color:rgba(12,27,24,0.98)] p-2.5 shadow-xl shadow-black/25">
+    <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 shadow-xl shadow-black/25">
       <div className="flex items-center justify-between gap-2">
         <SurfaceTabs
           selectedSurfaceId={selectedSurfaceId}
@@ -799,7 +818,9 @@ function createDraftFromObstacle(obstacle: ObstacleData): ObstacleDraft {
 
   return {
     ...baseDraft,
-    obstacle_id: obstacle.obstacle_id,
+    obstacle_id: obstacle.obstacle_id.startsWith("ostacolo_")
+      ? ""
+      : obstacle.obstacle_id,
     type: obstacle.type,
     shape: obstacle.shape,
     safety_margin_cm: obstacle.safety_margin_cm,
@@ -812,6 +833,22 @@ function createDraftFromObstacle(obstacle: ObstacleData): ObstacleDraft {
           diameter_cm: obstacle.dimensions.diameter_cm,
         }),
     ...obstacle.position,
+  };
+}
+
+function createPlaceholderObstacle(surface: SurfaceData): ObstacleData {
+  const obstacleId = `ostacolo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  return {
+    obstacle_id: obstacleId,
+    type: "camino",
+    shape: "rect",
+    safety_margin_cm: 0,
+    position: createPositionFromDraft(createEmptyObstacleDraft(), surface),
+    dimensions: {
+      width_cm: 0,
+      height_cm: 0,
+    },
   };
 }
 

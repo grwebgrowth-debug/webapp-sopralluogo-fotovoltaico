@@ -10,6 +10,7 @@ import type {
   ObstacleData,
   PanelSelection,
   SurfaceData,
+  SystemComponentsData,
   SurveyMeta,
 } from "@/types/survey";
 
@@ -30,6 +31,7 @@ export type WizardState = {
   panel_technical_data: PanelTechnicalData;
   layout_config: LayoutTargetConfig;
   preliminary_layout: PreliminaryModuleLayout | null;
+  system_components: SystemComponentsData;
   photos: SurveyPhoto[];
   active_client_profile: ActiveClientProfileSnapshot | null;
   meta: SurveyMeta;
@@ -119,6 +121,10 @@ export type WizardAction =
       layout: PreliminaryModuleLayout | null;
     }
   | {
+      type: "system_components/update";
+      systemComponents: Partial<SystemComponentsData>;
+    }
+  | {
       type: "photos/add";
       photos: SurveyPhoto[];
     }
@@ -187,6 +193,14 @@ export function createSurveyMeta(): SurveyMeta {
   };
 }
 
+export function createEmptySystemComponentsData(): SystemComponentsData {
+  return {
+    inverter: "",
+    cable_length_m: 0,
+    technical_notes: "",
+  };
+}
+
 export function createSurveyId(): string {
   return `sopralluogo_${Date.now()}`;
 }
@@ -207,6 +221,7 @@ export function createEmptyWizardState(): WizardState {
     panel_technical_data: createEmptyPanelTechnicalData(),
     layout_config: createDefaultLayoutTargetConfig(),
     preliminary_layout: null,
+    system_components: createEmptySystemComponentsData(),
     photos: [],
     active_client_profile: null,
     meta: createSurveyMeta(),
@@ -433,6 +448,19 @@ export function impostaLayoutPreliminare(
   });
 }
 
+export function aggiornaComponentiImpianto(
+  state: WizardState,
+  systemComponents: Partial<SystemComponentsData>,
+): WizardState {
+  return touchState({
+    ...state,
+    system_components: {
+      ...state.system_components,
+      ...systemComponents,
+    },
+  });
+}
+
 export function aggiungiFotoSopralluogo(
   state: WizardState,
   photos: SurveyPhoto[],
@@ -540,6 +568,8 @@ export function wizardReducer(
       return configuraTargetLayout(state, action.config);
     case "layout/set":
       return impostaLayoutPreliminare(state, action.layout);
+    case "system_components/update":
+      return aggiornaComponentiImpianto(state, action.systemComponents);
     case "photos/add":
       return aggiungiFotoSopralluogo(state, action.photos);
     case "photo/update":

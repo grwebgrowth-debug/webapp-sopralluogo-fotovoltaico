@@ -37,6 +37,7 @@ export function costruisciPayloadN8nV1(
       surfaces: state.roof.surfaces,
     },
     panel_selection: state.panel_selection,
+    system_components: state.system_components,
     meta: state.meta,
   };
 
@@ -49,6 +50,7 @@ export function costruisciPayloadN8nV1(
       inspection: state.inspection,
       roof: payload.roof,
       panel_selection: state.panel_selection,
+      system_components: state.system_components,
       meta: state.meta,
     },
   };
@@ -83,6 +85,10 @@ export function getPayloadErrors(state: WizardState): string[] {
 
   if (!state.panel_selection.model.trim()) {
     errors.push("Modello pannello mancante.");
+  }
+
+  if (!state.system_components.inverter) {
+    errors.push("Inverter mancante.");
   }
 
   return errors;

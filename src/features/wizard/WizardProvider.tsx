@@ -19,6 +19,7 @@ import type {
   ObstacleData,
   PanelSelection,
   SurfaceData,
+  SystemComponentsData,
 } from "@/types/survey";
 import {
   createClientProfileSnapshot,
@@ -61,6 +62,9 @@ type WizardActions = {
   impostaDatiTecniciPannello: (technicalData: PanelTechnicalData) => void;
   configuraTargetLayout: (config: LayoutTargetConfig) => void;
   impostaLayoutPreliminare: (layout: PreliminaryModuleLayout | null) => void;
+  aggiornaComponentiImpianto: (
+    systemComponents: Partial<SystemComponentsData>,
+  ) => void;
   aggiungiFotoSopralluogo: (photos: SurveyPhoto[]) => void;
   aggiornaFotoSopralluogo: (
     photoId: string,
@@ -156,6 +160,8 @@ export function WizardProvider({ children }: WizardProviderProps) {
         dispatch({ type: "layout/configure", config }),
       impostaLayoutPreliminare: (layout) =>
         dispatch({ type: "layout/set", layout }),
+      aggiornaComponentiImpianto: (systemComponents) =>
+        dispatch({ type: "system_components/update", systemComponents }),
       aggiungiFotoSopralluogo: (photos) =>
         dispatch({ type: "photos/add", photos }),
       aggiornaFotoSopralluogo: (photoId, photo) =>

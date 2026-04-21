@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { SurfaceShape } from "@/types/domain";
+import type { SurfaceCoverage, SurfaceShape } from "@/types/domain";
 import type { SurfaceData } from "@/types/survey";
 import { useWizard } from "@/features/wizard/WizardProvider";
 import {
@@ -14,6 +14,19 @@ const SHAPE_OPTIONS: Array<{ value: SurfaceShape; label: string }> = [
   { value: "trapezoid", label: "Trapezio" },
   { value: "triangle", label: "Triangolo" },
   { value: "guided_quad", label: "Irregolare" },
+];
+
+const COVERAGE_OPTIONS: Array<{ value: SurfaceCoverage; label: string }> = [
+  { value: "tegole", label: "Tegole" },
+  { value: "coppi", label: "Coppi" },
+  { value: "lamiera_grecata", label: "Lamiera grecata" },
+  { value: "pannello_sandwich", label: "Pannello sandwich" },
+  { value: "guaina_tetto_piano", label: "Guaina / tetto piano" },
+  {
+    value: "fibrocemento_eternit_da_verificare",
+    label: "Fibrocemento / eternit da verificare",
+  },
+  { value: "altro", label: "Altro" },
 ];
 
 const inputClassName =
@@ -213,6 +226,27 @@ export function FaldeStep({ embedded = false }: FaldeStepProps) {
                           }))
                         }
                       />
+                    </label>
+
+                    <label className={labelClassName}>
+                      Copertura *
+                      <select
+                        className={inputClassName}
+                        value={surface.coverage}
+                        onChange={(event) =>
+                          updateSurface(surface.surface_id, (currentSurface) => ({
+                            ...currentSurface,
+                            coverage: event.target.value as SurfaceCoverage,
+                          }))
+                        }
+                      >
+                        <option value="">Seleziona copertura</option>
+                        {COVERAGE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     </label>
 
                     {renderDimensionFields(surface, updateSurface)}
@@ -425,10 +459,13 @@ function getSurfacePreview(surface: SurfaceData): string {
     SHAPE_OPTIONS.find((option) => option.value === surface.shape)?.label ??
     "Forma";
   const orientation = surface.orientation || "orientamento da indicare";
+  const coverage =
+    COVERAGE_OPTIONS.find((option) => option.value === surface.coverage)?.label ??
+    "copertura da indicare";
   const obstaclesLabel =
     surface.obstacles.length === 1 ? "1 ostacolo" : `${surface.obstacles.length} ostacoli`;
 
-  return `${surface.name || "Falda"} - ${shapeLabel} - ${orientation} - ${obstaclesLabel}`;
+  return `${surface.name || "Falda"} - ${shapeLabel} - ${orientation} - ${coverage} - ${obstaclesLabel}`;
 }
 
 function isSurfaceComplete(surface: SurfaceData): boolean {
@@ -439,6 +476,7 @@ function isSurfaceComplete(surface: SurfaceData): boolean {
   return (
     surface.name.trim().length > 0 &&
     surface.orientation.trim().length > 0 &&
+    surface.coverage.length > 0 &&
     dimensionValues.length > 0 &&
     dimensionValues.every((value) => value > 0)
   );

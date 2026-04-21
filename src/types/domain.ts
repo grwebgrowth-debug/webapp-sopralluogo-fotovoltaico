@@ -4,6 +4,7 @@ export const WIZARD_STEP_IDS = [
   "ostacoli",
   "pannello",
   "layout_moduli",
+  "componenti_impianto",
   "foto",
   "revisione",
 ] as const;
@@ -30,6 +31,18 @@ export const SURFACE_SHAPES = [
 ] as const;
 
 export type SurfaceShape = (typeof SURFACE_SHAPES)[number];
+
+export const SURFACE_COVERAGES = [
+  "tegole",
+  "coppi",
+  "lamiera_grecata",
+  "pannello_sandwich",
+  "guaina_tetto_piano",
+  "fibrocemento_eternit_da_verificare",
+  "altro",
+] as const;
+
+export type SurfaceCoverage = (typeof SURFACE_COVERAGES)[number];
 
 export const OBSTACLE_SHAPES = ["rect", "circle"] as const;
 

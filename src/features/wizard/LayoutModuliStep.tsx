@@ -95,7 +95,7 @@ export function LayoutModuliStep() {
           />
         </dl>
         <button
-          className="mt-4 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!canCalculate}
           type="button"
           onClick={handleCalculate}

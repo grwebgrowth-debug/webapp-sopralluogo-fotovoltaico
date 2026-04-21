@@ -2,6 +2,8 @@ export const CLIENT_THEME_PREFERENCES = [
   "scuro_teal",
   "scuro_verde",
   "scuro_blu",
+  "chiaro_pulito",
+  "chiaro_contrasto",
 ] as const;
 
 export type ClientThemePreference = (typeof CLIENT_THEME_PREFERENCES)[number];

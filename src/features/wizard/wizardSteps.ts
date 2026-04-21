@@ -39,14 +39,20 @@ export const WIZARD_STEPS = [
     descrizione: "Stima dei moduli inseribili sulle falde.",
   },
   {
-    id: "foto",
+    id: "componenti_impianto",
     numero: 6,
+    titolo: "Componenti e note impianto",
+    descrizione: "Inverter, cavi e note tecniche del sopralluogo.",
+  },
+  {
+    id: "foto",
+    numero: 7,
     titolo: "Foto",
     descrizione: "Immagini del sopralluogo e note rapide.",
   },
   {
     id: "revisione",
-    numero: 7,
+    numero: 8,
     titolo: "Revisione e invio",
     descrizione: "Controllo finale e invio del sopralluogo.",
   },

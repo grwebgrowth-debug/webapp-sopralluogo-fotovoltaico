@@ -101,6 +101,10 @@ export function validateWizardStep(
     }
   }
 
+  if (stepId === "componenti_impianto" && !state.system_components.inverter) {
+    errors.push("Seleziona il tipo di inverter.");
+  }
+
   if (
     stepId === "foto" &&
     state.active_client_profile?.require_photos_before_submit &&
@@ -129,6 +133,7 @@ export function validateFinalSurvey(state: WizardState): WizardStepValidation {
     "ostacoli",
     "pannello",
     "layout_moduli",
+    "componenti_impianto",
     "foto",
   ];
 
@@ -174,6 +179,10 @@ function validateSurfaces(surfaces: SurfaceData[]): string[] {
 
     if (!surface.orientation.trim()) {
       errors.push(`${prefix}: orientamento obbligatorio.`);
+    }
+
+    if (!surface.coverage) {
+      errors.push(`${prefix}: copertura obbligatoria.`);
     }
 
     if (!hasValidDimensions(surface)) {

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { ObstacleType, RoofType, SurfaceShape, WizardStepId } from "@/types/domain";
+import { getInverterLabel } from "@/features/componenti-impianto/ComponentiImpiantoStep";
 import { getSurveyPhotoTypeLabel } from "@/features/foto/FotoStep";
 import { formattaKilowattPicco } from "@/lib/formatters/units";
 import { salvaSopralluogo } from "@/lib/services/surveyService";
@@ -138,7 +139,8 @@ export function RevisioneStep() {
           {state.roof.surfaces.map((surface, index) => (
             <li key={surface.surface_id}>
               <strong>Falda {index + 1}</strong>: {getSurfaceShapeLabel(surface.shape)},{" "}
-              {surface.orientation || "orientamento non indicato"}
+              {surface.orientation || "orientamento non indicato"},{" "}
+              {getSurfaceCoverageLabel(surface.coverage)}
             </li>
           ))}
         </CompactList>
@@ -216,6 +218,32 @@ export function RevisioneStep() {
         )}
       </ReviewSection>
 
+      <ReviewSection
+        title="Componenti e note impianto"
+        onEdit={() => actions.cambiaStep("componenti_impianto")}
+      >
+        <DescriptionList
+          items={[
+            [
+              "Inverter",
+              state.system_components.inverter
+                ? getInverterLabel(state.system_components.inverter)
+                : "Non selezionato",
+            ],
+            [
+              "Lunghezza cavi",
+              state.system_components.cable_length_m > 0
+                ? `${state.system_components.cable_length_m} m`
+                : "Non indicata",
+            ],
+            [
+              "Note tecniche",
+              state.system_components.technical_notes || "Nessuna nota",
+            ],
+          ]}
+        />
+      </ReviewSection>
+
       <ReviewSection title="Foto" onEdit={() => actions.cambiaStep("foto")}>
         {state.photos.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">Nessuna foto inserita.</p>
@@ -242,7 +270,7 @@ export function RevisioneStep() {
             </p>
           </div>
           <button
-            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!finalValidation.valid || submitState.status === "loading"}
             type="button"
             onClick={handleSubmit}
@@ -395,4 +423,18 @@ function getObstacleTypeLabel(type: ObstacleType): string {
   };
 
   return labels[type];
+}
+
+function getSurfaceCoverageLabel(coverage: string): string {
+  const labels: Record<string, string> = {
+    tegole: "Tegole",
+    coppi: "Coppi",
+    lamiera_grecata: "Lamiera grecata",
+    pannello_sandwich: "Pannello sandwich",
+    guaina_tetto_piano: "Guaina / tetto piano",
+    fibrocemento_eternit_da_verificare: "Fibrocemento / eternit da verificare",
+    altro: "Altro",
+  };
+
+  return labels[coverage] ?? "Copertura non indicata";
 }

@@ -10,16 +10,11 @@ import {
   createEmptyClientProfileDraft,
   useClientProfiles,
 } from "@/lib/clientProfiles";
+import { THEME_OPTIONS } from "./themeTokens";
 
 const inputClassName =
   "mt-2 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]";
 const labelClassName = "text-sm font-medium";
-
-const THEME_OPTIONS: Array<{ value: ClientThemePreference; label: string }> = [
-  { value: "scuro_teal", label: "Scuro teal" },
-  { value: "scuro_verde", label: "Scuro verde" },
-  { value: "scuro_blu", label: "Scuro blu" },
-];
 
 export function ProfiliClientiPage() {
   const {
@@ -106,7 +101,7 @@ export function ProfiliClientiPage() {
             <h1 className="mt-2 text-2xl font-semibold">Profili cliente</h1>
           </div>
           <button
-            className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-slate-950"
+            className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent-foreground)]"
             type="button"
             onClick={startNewProfile}
           >
@@ -135,7 +130,7 @@ export function ProfiliClientiPage() {
                   key={profile.profile_id}
                   className={`rounded-lg border p-4 text-sm ${
                     isActive
-                      ? "border-[var(--accent)] bg-[color:rgba(20,184,166,0.12)]"
+                      ? "border-[var(--accent)] bg-[var(--accent-soft)]"
                       : "border-[var(--border)] bg-[var(--surface-soft)]"
                   }`}
                 >
@@ -344,7 +339,7 @@ export function ProfiliClientiPage() {
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button
-            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950"
+            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)]"
             type="button"
             onClick={saveProfile}
           >

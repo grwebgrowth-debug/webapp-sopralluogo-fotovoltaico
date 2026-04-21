@@ -135,7 +135,7 @@ export function TettoStep() {
                 key={option.value}
                 className={`rounded-lg border p-3 text-left transition ${
                   selected
-                    ? "border-[var(--accent)] bg-[color:rgba(20,184,166,0.12)]"
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)]"
                     : "border-[var(--border)] bg-white hover:border-[var(--accent)]"
                 }`}
                 type="button"
@@ -184,7 +184,7 @@ export function TettoStep() {
             </p>
           </div>
           <button
-            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!selectedRoofType || !plannedSurfaceCount}
             type="button"
             onClick={handlePrepareSurfaces}

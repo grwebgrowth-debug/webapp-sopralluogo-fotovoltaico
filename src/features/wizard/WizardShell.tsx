@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ClienteStep } from "@/features/cliente/ClienteStep";
+import { ComponentiImpiantoStep } from "@/features/componenti-impianto/ComponentiImpiantoStep";
 import { FotoStep } from "@/features/foto/FotoStep";
 import { OstacoliStep } from "@/features/ostacoli/OstacoliStep";
 import { PannelloStep } from "@/features/pannelli/PannelloStep";
@@ -85,7 +86,7 @@ function WizardShellContent() {
           </div>
         )}
 
-        <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-[var(--border)] bg-[color:rgba(16,32,29,0.96)] px-3 py-2.5 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:mt-6 sm:flex-wrap sm:border-t sm:bg-transparent sm:p-0 sm:pt-4 sm:shadow-none">
+        <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2.5 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:mt-6 sm:flex-wrap sm:border-t sm:bg-transparent sm:p-0 sm:pt-4 sm:shadow-none">
           <button
             className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
             disabled={!canGoBack}
@@ -95,7 +96,7 @@ function WizardShellContent() {
             Indietro
           </button>
           <button
-            className="flex-1 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+            className="flex-1 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
             disabled={primaryDisabled}
             type="button"
             onClick={handlePrimaryAction}
@@ -147,7 +148,10 @@ function StepProgress({
           {currentStep?.titolo ?? "Sopralluogo"}
         </p>
       </div>
-      <div className="mt-3 grid grid-cols-7 gap-1.5">
+      <div
+        className="mt-3 grid gap-1.5"
+        style={{ gridTemplateColumns: `repeat(${WIZARD_STEPS.length}, minmax(0, 1fr))` }}
+      >
         {WIZARD_STEPS.map((step) => {
           const active = step.id === currentStepId;
           const pastStep = step.numero < currentStepNumber;
@@ -183,6 +187,7 @@ const STEP_RENDERERS: Record<WizardStepId, () => ReactNode> = {
   ostacoli: () => <OstacoliStep />,
   pannello: () => <PannelloStep />,
   layout_moduli: () => <LayoutModuliStep />,
+  componenti_impianto: () => <ComponentiImpiantoStep />,
   foto: () => <FotoStep />,
   revisione: () => <RevisioneStep />,
 };

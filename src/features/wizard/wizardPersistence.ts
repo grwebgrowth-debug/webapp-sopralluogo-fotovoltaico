@@ -2,6 +2,7 @@ import {
   OBSTACLE_SHAPES,
   OBSTACLE_TYPES,
   ROOF_TYPES,
+  SURFACE_COVERAGES,
   SURFACE_SHAPES,
   WIZARD_STEP_IDS,
 } from "@/types/domain";
@@ -14,7 +15,10 @@ import type {
 } from "@/types/layout";
 import type { PanelTechnicalData } from "@/types/panels";
 import type { SurveyPhoto } from "@/types/photos";
-import type { ActiveClientProfileSnapshot } from "@/types/profiles";
+import {
+  CLIENT_THEME_PREFERENCES,
+  type ActiveClientProfileSnapshot,
+} from "@/types/profiles";
 import type {
   CircleObstacleDimensions,
   CustomerData,
@@ -26,6 +30,8 @@ import type {
   RectObstacleDimensions,
   RectangularSurfaceDimensions,
   SurfaceData,
+  SystemComponentsData,
+  SystemInverterOption,
   TrapezoidSurfaceDimensions,
   TriangleSurfaceDimensions,
 } from "@/types/survey";
@@ -111,7 +117,7 @@ export function normalizeWizardState(value: unknown): WizardState | null {
       : null;
   const surfaces =
     isRecord(value.roof) && Array.isArray(value.roof.surfaces)
-      ? value.roof.surfaces.filter(isSurfaceData)
+      ? value.roof.surfaces.map(normalizeSurfaceData).filter(isSurfaceData)
       : [];
   const customSurfaceCount =
     isRecord(value.roof) && isNumber(value.roof.custom_surface_count)
@@ -126,6 +132,7 @@ export function normalizeWizardState(value: unknown): WizardState | null {
   const photos = Array.isArray(value.photos)
     ? value.photos.map(normalizeSurveyPhoto).filter(isSurveyPhoto)
     : [];
+  const systemComponents = normalizeSystemComponents(value.system_components);
   const activeClientProfile = normalizeActiveClientProfile(
     value.active_client_profile,
   );
@@ -151,6 +158,7 @@ export function normalizeWizardState(value: unknown): WizardState | null {
     panel_technical_data: panelTechnicalData,
     layout_config: reconcileLayoutTargetConfig(layoutConfig, panelTechnicalData.power_w),
     preliminary_layout: preliminaryLayout,
+    system_components: systemComponents,
     photos,
     active_client_profile: activeClientProfile,
     meta: createSurveyMeta(),
@@ -282,14 +290,14 @@ function normalizeSurveyPhoto(value: unknown): SurveyPhoto | null {
   if (
     !isRecord(value) ||
     !isString(value.photo_id) ||
-    !isSurveyPhotoType(value.type)
+    (!isSurveyPhotoType(value.type) && value.type !== "falda")
   ) {
     return null;
   }
 
   return {
     photo_id: value.photo_id,
-    type: value.type,
+    type: normalizeSurveyPhotoType(value.type),
     note: readStringField(value, "note"),
     file_name: readStringField(value, "file_name"),
     file_size: readNumberField(value, "file_size"),
@@ -302,6 +310,16 @@ function isSurveyPhoto(value: SurveyPhoto | null): value is SurveyPhoto {
   return value !== null;
 }
 
+function normalizeSystemComponents(value: unknown): SystemComponentsData {
+  const inverterValue = isRecord(value) ? value.inverter : undefined;
+
+  return {
+    inverter: isSystemInverterOption(inverterValue) ? inverterValue : "",
+    cable_length_m: readNumberField(value, "cable_length_m"),
+    technical_notes: readStringField(value, "technical_notes"),
+  };
+}
+
 function normalizeActiveClientProfile(
   value: unknown,
 ): ActiveClientProfileSnapshot | null {
@@ -309,17 +327,19 @@ function normalizeActiveClientProfile(
     return null;
   }
 
+  const preferredTheme =
+    isString(value.preferred_theme) &&
+    CLIENT_THEME_PREFERENCES.includes(value.preferred_theme as never)
+      ? (value.preferred_theme as ActiveClientProfileSnapshot["preferred_theme"])
+      : "scuro_teal";
+
   return {
     profile_id: value.profile_id,
     profile_name: readStringField(value, "profile_name"),
     company_name: readStringField(value, "company_name"),
     client_code: readStringField(value, "client_code"),
     default_technician: readStringField(value, "default_technician"),
-    preferred_theme:
-      value.preferred_theme === "scuro_verde" ||
-      value.preferred_theme === "scuro_blu"
-        ? value.preferred_theme
-        : "scuro_teal",
+    preferred_theme: preferredTheme,
     n8n_base_url: readStringField(value, "n8n_base_url"),
     survey_submit_endpoint: readStringField(value, "survey_submit_endpoint"),
     panel_catalog_endpoint: readStringField(value, "panel_catalog_endpoint"),
@@ -339,7 +359,64 @@ function normalizeActiveClientProfile(
   };
 }
 
-function isSurfaceData(value: unknown): value is SurfaceData {
+function normalizeSurfaceData(value: unknown): SurfaceData | null {
+  if (!isRecord(value) || !isSurfaceShape(value.shape)) {
+    return null;
+  }
+
+  const baseSurface = {
+    surface_id: readStringField(value, "surface_id"),
+    name: readStringField(value, "name"),
+    shape: value.shape,
+    orientation: readStringField(value, "orientation"),
+    coverage: isSurfaceCoverage(value.coverage) ? value.coverage : "",
+    tilt_deg: readNumberField(value, "tilt_deg"),
+    edge_clearance_cm: readNumberField(value, "edge_clearance_cm"),
+    notes: readStringField(value, "notes"),
+    obstacles: Array.isArray(value.obstacles)
+      ? value.obstacles.filter(isObstacleData)
+      : [],
+  };
+
+  switch (value.shape) {
+    case "rectangular":
+      return isRectangularSurfaceDimensions(value.dimensions)
+        ? {
+            ...baseSurface,
+            shape: "rectangular",
+            dimensions: value.dimensions,
+          }
+        : null;
+    case "trapezoid":
+      return isTrapezoidSurfaceDimensions(value.dimensions)
+        ? {
+            ...baseSurface,
+            shape: "trapezoid",
+            dimensions: value.dimensions,
+          }
+        : null;
+    case "triangle":
+      return isTriangleSurfaceDimensions(value.dimensions)
+        ? {
+            ...baseSurface,
+            shape: "triangle",
+            dimensions: value.dimensions,
+          }
+        : null;
+    case "guided_quad":
+      return isGuidedQuadSurfaceDimensions(value.dimensions)
+        ? {
+            ...baseSurface,
+            shape: "guided_quad",
+            dimensions: value.dimensions,
+          }
+        : null;
+    default:
+      return null;
+  }
+}
+
+function isSurfaceData(value: SurfaceData | null): value is SurfaceData {
   if (!isRecord(value) || !isSurfaceShape(value.shape)) {
     return false;
   }
@@ -348,6 +425,7 @@ function isSurfaceData(value: unknown): value is SurfaceData {
     !isString(value.surface_id) ||
     !isString(value.name) ||
     !isString(value.orientation) ||
+    !isString(value.coverage) ||
     !isNumber(value.tilt_deg) ||
     !isNumber(value.edge_clearance_cm) ||
     !isString(value.notes) ||
@@ -511,12 +589,23 @@ function isLayoutCalculationMode(value: unknown): value is LayoutCalculationMode
 function isSurveyPhotoType(value: unknown): value is SurveyPhoto["type"] {
   return (
     value === "tetto_panoramica" ||
-    value === "falda" ||
+    value === "falda_1" ||
+    value === "falda_2" ||
     value === "ostacolo" ||
     value === "quadro_elettrico" ||
     value === "contatore" ||
+    value === "inverter_esistente" ||
+    value === "copertura" ||
     value === "altro"
   );
+}
+
+function normalizeSurveyPhotoType(value: unknown): SurveyPhoto["type"] {
+  if (value === "falda") {
+    return "falda_1";
+  }
+
+  return isSurveyPhotoType(value) ? value : "tetto_panoramica";
 }
 
 function isRoofType(value: unknown): value is NonNullable<WizardState["roof"]["roof_type"]> {
@@ -527,12 +616,27 @@ function isSurfaceShape(value: unknown): value is SurfaceData["shape"] {
   return isString(value) && SURFACE_SHAPES.includes(value as never);
 }
 
+function isSurfaceCoverage(value: unknown): value is SurfaceData["coverage"] {
+  return value === "" || (isString(value) && SURFACE_COVERAGES.includes(value as never));
+}
+
 function isObstacleType(value: unknown): value is ObstacleData["type"] {
   return isString(value) && OBSTACLE_TYPES.includes(value as never);
 }
 
 function isObstacleShape(value: unknown): value is ObstacleData["shape"] {
   return isString(value) && OBSTACLE_SHAPES.includes(value as never);
+}
+
+function isSystemInverterOption(value: unknown): value is SystemInverterOption {
+  return (
+    value === "microinverter" ||
+    value === "inverter_stringa_monofase" ||
+    value === "inverter_stringa_trifase" ||
+    value === "inverter_ibrido" ||
+    value === "ottimizzatori_con_inverter" ||
+    value === "altro"
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

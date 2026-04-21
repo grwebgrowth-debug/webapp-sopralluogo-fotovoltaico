@@ -33,7 +33,7 @@ export function AppHeader() {
 
   return (
     <header
-      className={`z-40 border-b border-[var(--border)] bg-[color:rgba(16,32,29,0.94)] backdrop-blur ${
+      className={`z-40 border-b border-[var(--border)] bg-[var(--surface-elevated)] backdrop-blur ${
         isObstaclesStep ? "relative" : "sticky top-0"
       }`}
     >
@@ -62,7 +62,7 @@ export function AppHeader() {
               >
                 <CameraIcon />
                 {photosCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-semibold text-slate-950">
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-semibold text-[var(--accent-foreground)]">
                     {photosCount > 9 ? "9+" : photosCount}
                   </span>
                 )}

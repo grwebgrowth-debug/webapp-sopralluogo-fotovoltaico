@@ -158,6 +158,7 @@ function createFallbackSurface(): SurfaceData {
     name: "Falda provvisoria",
     shape: "rectangular",
     orientation: "",
+    coverage: "",
     tilt_deg: 0,
     edge_clearance_cm: 0,
     notes: "",

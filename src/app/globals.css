@@ -10,8 +10,15 @@
   --border: #27423c;
   --accent: #14b8a6;
   --accent-strong: #0f766e;
+  --accent-soft: rgba(20, 184, 166, 0.12);
+  --accent-foreground: #05231f;
   --danger: #fca5a5;
   --success: #6ee7b7;
+  --page-glow: rgba(20, 184, 166, 0.12);
+  --page-gradient-start: #071311;
+  --page-gradient-mid: #081816;
+  --page-gradient-end: #050d0c;
+  --input-placeholder: #6f8881;
 }
 
 html,
@@ -19,8 +26,13 @@ body {
   padding: 0;
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgba(20, 184, 166, 0.12), transparent 32rem),
-    linear-gradient(180deg, #071311 0%, #081816 42%, #050d0c 100%);
+    radial-gradient(circle at top left, var(--page-glow), transparent 32rem),
+    linear-gradient(
+      180deg,
+      var(--page-gradient-start) 0%,
+      var(--page-gradient-mid) 42%,
+      var(--page-gradient-end) 100%
+    );
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -43,7 +55,7 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: #6f8881;
+  color: var(--input-placeholder);
 }
 
 select option {
@@ -57,20 +69,20 @@ select option {
 
 .bg-emerald-50,
 .bg-emerald-100 {
-  background-color: rgba(6, 78, 59, 0.34) !important;
+  background-color: color-mix(in srgb, var(--success) 18%, transparent) !important;
 }
 
 .bg-red-50,
 .bg-red-100 {
-  background-color: rgba(127, 29, 29, 0.34) !important;
+  background-color: color-mix(in srgb, var(--danger) 18%, transparent) !important;
 }
 
 .border-emerald-200 {
-  border-color: rgba(110, 231, 183, 0.42) !important;
+  border-color: color-mix(in srgb, var(--success) 34%, transparent) !important;
 }
 
 .border-red-200 {
-  border-color: rgba(252, 165, 165, 0.42) !important;
+  border-color: color-mix(in srgb, var(--danger) 34%, transparent) !important;
 }
 
 .text-emerald-700,

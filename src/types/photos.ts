@@ -1,9 +1,12 @@
 export const SURVEY_PHOTO_TYPES = [
   "tetto_panoramica",
-  "falda",
+  "falda_1",
+  "falda_2",
   "ostacolo",
   "quadro_elettrico",
   "contatore",
+  "inverter_esistente",
+  "copertura",
   "altro",
 ] as const;
 
